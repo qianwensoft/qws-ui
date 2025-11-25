@@ -1,0 +1,223 @@
+.advanced-table-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.table-toolbar {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.column-settings-button {
+  padding: 6px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.column-settings-button:hover {
+  background: #40a9ff;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+}
+
+.advanced-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table-header-cell {
+  position: relative;
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  padding: 0;
+  text-align: left;
+  font-weight: 500;
+  user-select: none;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  padding: 12px 8px;
+  position: relative;
+}
+
+.drag-handle {
+  cursor: grab;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  margin-right: 8px;
+  color: #8c8c8c;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.drag-handle:hover {
+  color: #1890ff;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: #1890ff;
+}
+
+.table-cell {
+  border: 1px solid #e8e8e8;
+  padding: 8px 12px;
+  position: relative;
+  background: white;
+  transition: background 0.2s;
+  cursor: cell;
+}
+
+.table-cell:hover {
+  background: #f5f5f5;
+}
+
+.table-cell.selected {
+  background: #e6f7ff;
+  outline: 2px solid #1890ff;
+  outline-offset: -2px;
+}
+
+.table-cell:focus {
+  outline: 2px solid #1890ff;
+  outline-offset: -2px;
+  background: #e6f7ff;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8c8c8c;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.close-button:hover {
+  background: #f5f5f5;
+}
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+}
+
+.column-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.column-checkbox input[type="checkbox"] {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.column-checkbox span {
+  font-size: 14px;
+  color: #333;
+}
+
+.column-checkbox:hover {
+  background: #f5f5f5;
+  margin: 0 -8px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
