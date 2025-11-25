@@ -1031,12 +1031,27 @@ export interface DataChangeInfo<T> {
   affectedRowIndices: number[];   // 受影响的行索引
 }
 
+// 选中单元格信息
+export interface SelectedCellInfo {
+  rowIndex: number;
+  columnIndex: number;
+  columnId: string;
+}
+
+// 选择范围信息
+export interface SelectionRangeInfo {
+  start: { rowIndex: number; columnIndex: number };
+  end: { rowIndex: number; columnIndex: number };
+  cells: SelectedCellInfo[];
+}
+
 // 主表格组件
 export interface AdvancedTableProps<T extends Record<string, any>> {
   data: T[];
   columns: ColumnDef<T>[];
   onDataChange?: (data: T[], changeInfo?: DataChangeInfo<T>) => void;
   onFilterChange?: OnFilterChange<T>;
+  onSelectionChange?: (selection: SelectionRangeInfo | null) => void;  // 选择变化回调
   enableFiltering?: boolean;
   enableEditing?: boolean;
   enablePaste?: boolean;  // 是否启用粘贴功能，默认 true
@@ -1044,6 +1059,7 @@ export interface AdvancedTableProps<T extends Record<string, any>> {
   enableCrossHighlight?: boolean;
   zebraStripeColor?: string;
   crossHighlightColor?: string;
+  selectedBorderColor?: string;  // 选中单元格边框颜色，默认 #1890ff
   enableExport?: boolean;
   exportFilename?: string;
   enableColumnReorder?: boolean; // 是否启用列设置中的排序功能，默认 false
@@ -1061,6 +1077,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   columns,
   onDataChange,
   onFilterChange,
+  onSelectionChange,
   enableFiltering = true,
   enableEditing = true,
   enablePaste = true,
@@ -1068,6 +1085,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   enableCrossHighlight = true,
   zebraStripeColor = '#fafafa',
   crossHighlightColor = '#e6f7ff',
+  selectedBorderColor = '#1890ff',
   enableExport = true,
   exportFilename = '表格数据',
   enableColumnReorder = false,
@@ -1090,6 +1108,12 @@ export function AdvancedTable<T extends Record<string, any>>({
     columnId: string;
     columnIndex: number;  // 列的显示索引（从0开始）
   } | null>(null);
+  // 多选区域：起始和结束单元格
+  const [selectionRange, setSelectionRange] = useState<{
+    start: { rowIndex: number; columnIndex: number };
+    end: { rowIndex: number; columnIndex: number };
+  } | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);  // 是否正在拖拽选择
   const [hoveredCell, setHoveredCell] = useState<{
     rowIndex: number;
     columnId: string;
@@ -1434,10 +1458,89 @@ export function AdvancedTable<T extends Record<string, any>>({
     [table, displayData, tableData, onDataChange]
   );
 
-  // 处理单元格点击
-  const handleCellClick = (rowIndex: number, columnId: string, columnIndex: number) => {
+  // 检查单元格是否在选中范围内
+  const isCellInSelectionRange = useCallback((rowIndex: number, columnIndex: number): boolean => {
+    if (!selectionRange) return false;
+    const { start, end } = selectionRange;
+    const minRow = Math.min(start.rowIndex, end.rowIndex);
+    const maxRow = Math.max(start.rowIndex, end.rowIndex);
+    const minCol = Math.min(start.columnIndex, end.columnIndex);
+    const maxCol = Math.max(start.columnIndex, end.columnIndex);
+    return rowIndex >= minRow && rowIndex <= maxRow && columnIndex >= minCol && columnIndex <= maxCol;
+  }, [selectionRange]);
+
+  // 获取选中的单元格范围（包含列 ID）
+  const getSelectedCells = useCallback((): SelectedCellInfo[] => {
+    if (!selectionRange) return [];
+    const { start, end } = selectionRange;
+    const minRow = Math.min(start.rowIndex, end.rowIndex);
+    const maxRow = Math.max(start.rowIndex, end.rowIndex);
+    const minCol = Math.min(start.columnIndex, end.columnIndex);
+    const maxCol = Math.max(start.columnIndex, end.columnIndex);
+    
+    const visibleCells = table.getRowModel().rows[0]?.getVisibleCells();
+    const cells: SelectedCellInfo[] = [];
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        const columnId = visibleCells?.[c]?.column.id || '';
+        cells.push({ rowIndex: r, columnIndex: c, columnId });
+      }
+    }
+    return cells;
+  }, [selectionRange, table]);
+
+  // 处理单元格鼠标按下（开始选择）
+  const handleCellMouseDown = (rowIndex: number, columnId: string, columnIndex: number, e: React.MouseEvent) => {
+    // 忽略右键
+    if (e.button !== 0) return;
+    
     setSelectedCell({ rowIndex, columnId, columnIndex });
+    setSelectionRange({
+      start: { rowIndex, columnIndex },
+      end: { rowIndex, columnIndex },
+    });
+    setIsSelecting(true);
   };
+
+  // 处理单元格鼠标移动（扩展选择）
+  const handleCellMouseEnter = (rowIndex: number, columnIndex: number) => {
+    if (isSelecting && selectionRange) {
+      setSelectionRange({
+        ...selectionRange,
+        end: { rowIndex, columnIndex },
+      });
+    }
+    if (enableCrossHighlight) {
+      const visibleCells = table.getRowModel().rows[0]?.getVisibleCells();
+      const columnId = visibleCells?.[columnIndex]?.column.id || '';
+      setHoveredCell({ rowIndex, columnId });
+    }
+  };
+
+  // 处理鼠标抬起（结束选择）
+  const handleMouseUp = useCallback(() => {
+    if (isSelecting) {
+      setIsSelecting(false);
+      // 触发选择变化回调
+      if (onSelectionChange && selectionRange) {
+        const cells = getSelectedCells();
+        onSelectionChange({
+          start: selectionRange.start,
+          end: selectionRange.end,
+          cells,
+        });
+      }
+    }
+  }, [isSelecting, onSelectionChange, selectionRange, getSelectedCells]);
+
+  // 全局鼠标抬起监听
+  React.useEffect(() => {
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseUp]);
+
 
   // 开始编辑单元格
   const handleStartEdit = (rowIndex: number, columnId: string) => {
@@ -1920,6 +2023,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                       const isSelected =
                         selectedCell?.rowIndex === rowIndex &&
                         selectedCell?.columnId === columnId;
+                      const isInRange = isCellInSelectionRange(rowIndex, columnIndex);
                       const isEditing =
                         editingCell?.rowIndex === rowIndex &&
                         editingCell?.columnId === columnId;
@@ -1939,29 +2043,33 @@ export function AdvancedTable<T extends Record<string, any>>({
                       if (isZebraRow) cellBgColor = zebraStripeColor;
                       if (isRowHovered || isColumnHovered) cellBgColor = crossHighlightColor;
                       if (isCellHovered) cellBgColor = '#bae7ff'; // 交叉点更深的颜色
+                      if (isInRange) cellBgColor = '#e6f7ff'; // 选中范围背景色
 
                       return (
                         <td
                           key={cell.id}
-                          className={`table-cell ${isSelected ? 'selected' : ''} ${isEditing ? 'editing' : ''} ${isColumnHovered ? 'column-highlighted' : ''} ${isCellHovered ? 'cross-highlighted' : ''}`}
+                          className={`table-cell ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isEditing ? 'editing' : ''} ${isColumnHovered ? 'column-highlighted' : ''} ${isCellHovered ? 'cross-highlighted' : ''}`}
                           style={{
                             width: cell.column.getSize(),
                             minWidth: cell.column.columnDef.minSize,
                             maxWidth: cell.column.columnDef.maxSize,
                             ...(enableCrossHighlight && (isRowHovered || isColumnHovered) ? { backgroundColor: cellBgColor } : {}),
+                            ...(isInRange ? { backgroundColor: cellBgColor } : {}),
+                            ...(isSelected ? { 
+                              '--selected-border-color': selectedBorderColor,
+                              boxShadow: `inset 0 0 0 2px ${selectedBorderColor}`,
+                            } as React.CSSProperties : {}),
                           }}
-                          onClick={() => {
+                          onMouseDown={(e) => {
                             if (!isEditing) {
-                              handleCellClick(rowIndex, columnId, columnIndex);
+                              handleCellMouseDown(rowIndex, columnId, columnIndex, e);
                             }
                           }}
                           onMouseEnter={() => {
-                            if (enableCrossHighlight) {
-                              setHoveredCell({ rowIndex, columnId });
-                            }
+                            handleCellMouseEnter(rowIndex, columnIndex);
                           }}
                           onMouseLeave={() => {
-                            if (enableCrossHighlight) {
+                            if (enableCrossHighlight && !isSelecting) {
                               setHoveredCell(null);
                             }
                           }}

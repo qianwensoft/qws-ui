@@ -207,6 +207,7 @@
   background: white;
   transition: background-color 0.15s;
   cursor: cell;
+  user-select: none;  /* 禁止拖动选择时选中文本 */
 }
 
 .table-cell:hover {
@@ -223,15 +224,36 @@
   background-color: #bae7ff !important;
 }
 
+/* 多选范围内的单元格 */
+.table-cell.in-range {
+  background: #e6f7ff !important;
+  position: relative;
+}
+
+/* 选中起始单元格 */
 .table-cell.selected {
   background: #e6f7ff;
-  outline: 2px solid #1890ff;
-  outline-offset: -2px;
+  outline: none;
+  position: relative;
+  z-index: 2;
+  /* box-shadow 通过内联样式设置，支持自定义颜色 */
+}
+
+/* 多选范围边框效果 */
+.table-cell.in-range::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid rgba(24, 144, 255, 0.3);
+  pointer-events: none;
 }
 
 .table-cell:focus {
-  outline: 2px solid #1890ff;
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--selected-border-color, #1890ff);
   background: #e6f7ff;
 }
 
