@@ -14,6 +14,72 @@
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 导出按钮样式 */
+.export-dropdown {
+  position: relative;
+}
+
+.export-button {
+  padding: 6px 12px;
+  background: #52c41a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-button:hover {
+  background: #73d13d;
+}
+
+.export-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.export-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.export-menu-item:hover {
+  background: #f5f5f5;
+}
+
+.export-menu-item:not(:last-child) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.export-menu-hint {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 2px;
 }
 
 .column-settings-button {
@@ -61,6 +127,16 @@
   align-items: center;
   padding: 12px 8px;
   position: relative;
+  padding-right: 6px; /* 为 resize-handle 留出空间 */
+  gap: 8px;
+}
+
+.header-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .drag-handle {
@@ -90,14 +166,30 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 6px;
   cursor: col-resize;
   background: transparent;
   transition: background 0.2s;
+  z-index: 10;
+  margin-right: -3px; /* 扩展可点击区域 */
 }
 
 .resize-handle:hover {
   background: #1890ff;
+  opacity: 0.6;
+}
+
+/* 表格行样式 */
+.table-row {
+  transition: background-color 0.15s;
+}
+
+.table-row.zebra-row {
+  background-color: #fafafa;
+}
+
+.table-row.row-highlighted {
+  background-color: #e6f7ff;
 }
 
 .table-cell {
@@ -105,12 +197,22 @@
   padding: 8px 12px;
   position: relative;
   background: white;
-  transition: background 0.2s;
+  transition: background-color 0.15s;
   cursor: cell;
 }
 
 .table-cell:hover {
   background: #f5f5f5;
+}
+
+/* 列高亮样式 */
+.table-cell.column-highlighted {
+  background-color: #e6f7ff;
+}
+
+/* 十字交叉点样式 */
+.table-cell.cross-highlighted {
+  background-color: #bae7ff !important;
 }
 
 .table-cell.selected {
@@ -123,6 +225,88 @@
   outline: 2px solid #1890ff;
   outline-offset: -2px;
   background: #e6f7ff;
+}
+
+.table-cell.editing {
+  padding: 0;
+  background: #fff;
+}
+
+/* 可编辑单元格样式 */
+.editable-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
+  min-height: 32px;
+}
+
+.editable-cell-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+  min-width: 0;
+}
+
+.editable-cell-input:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.editable-cell-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.editable-cell-save,
+.editable-cell-cancel {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.editable-cell-save {
+  background: #52c41a;
+  color: white;
+}
+
+.editable-cell-save:hover {
+  background: #73d13d;
+}
+
+.editable-cell-cancel {
+  background: #ff4d4f;
+  color: white;
+}
+
+.editable-cell-cancel:hover {
+  background: #ff7875;
+}
+
+.editable-cell-display {
+  width: 100%;
+  min-height: 24px;
+  padding: 4px 0;
+  cursor: text;
+  user-select: text;
+}
+
+.editable-cell-display:hover {
+  background: #f5f5f5;
+  border-radius: 2px;
 }
 
 /* 模态框样式 */
@@ -219,5 +403,409 @@
   margin: 0 -8px;
   padding: 8px;
   border-radius: 4px;
+}
+
+/* 列设置弹窗样式 */
+.column-settings-modal {
+  max-width: 500px;
+}
+
+.column-settings-hint {
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #1890ff;
+}
+
+.column-settings-hint p {
+  margin: 0;
+}
+
+.column-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background: white;
+  transition: all 0.2s;
+  cursor: move;
+}
+
+.column-settings-item:hover {
+  background: #fafafa;
+  border-color: #d9d9d9;
+}
+
+.column-settings-item.dragging {
+  opacity: 0.5;
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+
+.column-drag-handle {
+  cursor: grab;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  color: #8c8c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.column-drag-handle:hover {
+  color: #1890ff;
+  background: #f0f0f0;
+}
+
+.column-drag-handle:active {
+  cursor: grabbing;
+}
+
+.column-settings-item .column-checkbox {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.column-settings-item .column-checkbox:hover {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+.column-order-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.column-move-button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  transition: all 0.2s;
+}
+
+.column-move-button:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.column-move-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 过滤器按钮样式 */
+.filter-button {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  margin-left: 8px;
+  color: #8c8c8c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-button:hover {
+  background: #f0f0f0;
+  color: #1890ff;
+}
+
+.filter-button.filter-active {
+  color: #1890ff;
+  background: #e6f7ff;
+}
+
+.filter-button.filter-active:hover {
+  background: #bae7ff;
+}
+
+/* 过滤面板样式 */
+.filter-panel {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 320px;
+  max-width: 400px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.filter-panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.filter-panel-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.filter-close-button {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #8c8c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.filter-close-button:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.filter-panel-body {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.filter-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-panel-body::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+.filter-empty-state {
+  text-align: center;
+  padding: 20px 0;
+  color: #8c8c8c;
+}
+
+.filter-empty-state p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.filter-add-button {
+  padding: 6px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s;
+}
+
+.filter-add-button:hover {
+  background: #40a9ff;
+}
+
+.filter-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-condition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-connector {
+  font-size: 12px;
+  color: #8c8c8c;
+  padding: 4px 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.filter-condition-content {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.filter-condition-content .auto-expand-input-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-operator-select {
+  flex: 0 0 120px;
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filter-operator-select:hover {
+  border-color: #40a9ff;
+}
+
+.filter-operator-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.auto-expand-input-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+.auto-expand-input {
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: border-color 0.2s, width 0.2s;
+  box-sizing: border-box;
+}
+
+.auto-expand-input:hover {
+  border-color: #40a9ff;
+}
+
+.auto-expand-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.filter-value-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+.filter-value-input:hover {
+  border-color: #40a9ff;
+}
+
+.filter-value-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.filter-remove-button {
+  flex: 0 0 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  transition: all 0.2s;
+}
+
+.filter-remove-button:hover {
+  background: #fff1f0;
+  border-color: #ffccc7;
+  color: #ff4d4f;
+}
+
+.filter-panel-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.filter-add-condition-button {
+  flex: 1;
+  padding: 6px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.2s;
+}
+
+.filter-add-condition-button:hover {
+  background: #40a9ff;
+}
+
+.filter-clear-button {
+  padding: 6px 12px;
+  background: white;
+  color: #8c8c8c;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.filter-clear-button:hover {
+  border-color: #ff4d4f;
+  color: #ff4d4f;
 }
 

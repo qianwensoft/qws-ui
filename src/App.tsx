@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdvancedTable } from './components/AdvancedTable';
+import { AdvancedTable, type OnFilterChange, type ColumnFilters } from './components/AdvancedTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import './App.css';
 
@@ -115,6 +115,32 @@ function App() {
     console.log('数据已更新:', newData);
   };
 
+  // 过滤变化回调（可用于接口调用）
+  const handleFilterChange: OnFilterChange<Person> = async (columnId, filters, allFilters) => {
+    console.log('过滤条件变化:', {
+      columnId,
+      filters,
+      allFilters,
+    });
+
+    // 示例：调用接口进行服务端过滤
+    // try {
+    //   const response = await fetch('/api/filter', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({
+    //       columnId,
+    //       filters,
+    //       allFilters,
+    //     }),
+    //   });
+    //   const filteredData = await response.json();
+    //   setData(filteredData);
+    // } catch (error) {
+    //   console.error('过滤请求失败:', error);
+    // }
+  };
+
   return (
     <div className="app">
       <div className="app-header">
@@ -132,6 +158,12 @@ function App() {
           <div className="feature-item">
             <strong>功能 4:</strong> 显示/隐藏列 - 点击右上角"列设置"按钮
           </div>
+          <div className="feature-item">
+            <strong>功能 5:</strong> 列过滤 - 点击表头右侧的过滤器图标，支持多条过滤条件和多种操作符（大于、小于、等于、包含等）
+          </div>
+          <div className="feature-item">
+            <strong>功能 6:</strong> 导出 Excel - 点击"导出"按钮，支持导出当前数据、当前页或全部数据（所见即所得）
+          </div>
         </div>
       </div>
       <div className="app-content">
@@ -139,6 +171,10 @@ function App() {
           data={data}
           columns={columns}
           onDataChange={handleDataChange}
+          onFilterChange={handleFilterChange}
+          enableFiltering={true}
+          enableExport={true}
+          exportFilename="员工数据"
         />
       </div>
     </div>
