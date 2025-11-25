@@ -1382,78 +1382,80 @@ export function AdvancedTable<T extends Record<string, any>>({
       const changes: DataChangeItem<T>[] = [];
       const affectedRowIndices: Set<number> = new Set();
 
-      // 按照显示顺序更新数据
-      setTableData((prevData) => {
-        const newData = [...prevData];
+      // 复制当前数据进行修改
+      const newData = [...tableData];
+      
+      // 遍历粘贴的每一行（纵向）
+      pastedRows.forEach((pastedRow, rowOffset) => {
+        // 计算目标行在 displayData 中的索引
+        const targetDisplayRowIndex = startRowIndex + rowOffset;
         
-        // 遍历粘贴的每一行（纵向）
-        pastedRows.forEach((pastedRow, rowOffset) => {
-          // 计算目标行在 displayData 中的索引
-          const targetDisplayRowIndex = startRowIndex + rowOffset;
-          
-          // 获取目标行在原始数据中的索引
-          const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
-          
-          if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
-            // 更新现有行：按可见列顺序横向填充
-            const oldRow = newData[targetDataIndex];
-            const updatedRow = { ...oldRow };
-            pastedRow.forEach((cellValue, colOffset) => {
-              // 使用列索引直接定位目标列
-              const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
-                const oldValue = (oldRow as any)[targetColumnId];
-                (updatedRow as any)[targetColumnId] = cellValue;
-                // 记录变更
-                changes.push({
-                  rowIndex: targetDataIndex,
-                  columnId: targetColumnId,
-                  oldValue,
-                  newValue: cellValue,
-                  rowData: updatedRow,
-                });
-              }
-            });
-            newData[targetDataIndex] = updatedRow;
-            affectedRowIndices.add(targetDataIndex);
-          } else if (targetDisplayRowIndex >= displayData.length) {
-            // 如果超出显示范围，在数据末尾创建新行
-            const templateRow = newData[newData.length - 1];
-            const newRow = templateRow ? { ...templateRow } : ({} as T);
-            const newRowIndex = newData.length;
-            pastedRow.forEach((cellValue, colOffset) => {
-              const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
-                (newRow as any)[targetColumnId] = cellValue;
-                // 记录变更（新行的 oldValue 为 undefined）
-                changes.push({
-                  rowIndex: newRowIndex,
-                  columnId: targetColumnId,
-                  oldValue: undefined,
-                  newValue: cellValue,
-                  rowData: newRow,
-                });
-              }
-            });
-            newData.push(newRow);
-            affectedRowIndices.add(newRowIndex);
-          }
-        });
-
-        // 构建变更信息并回调
-        if (onDataChange && changes.length > 0) {
-          const affectedIndices = Array.from(affectedRowIndices).sort((a, b) => a - b);
-          const changeInfo: DataChangeInfo<T> = {
-            type: 'paste',
-            changes,
-            affectedRows: affectedIndices.map((idx) => newData[idx]),
-            affectedRowIndices: affectedIndices,
-          };
-          onDataChange(newData, changeInfo);
+        // 获取目标行在原始数据中的索引
+        const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
+        
+        if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
+          // 更新现有行：按可见列顺序横向填充
+          const oldRow = newData[targetDataIndex];
+          const updatedRow = { ...oldRow };
+          pastedRow.forEach((cellValue, colOffset) => {
+            // 使用列索引直接定位目标列
+            const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
+            if (targetColumnId) {
+              const oldValue = (oldRow as any)[targetColumnId];
+              (updatedRow as any)[targetColumnId] = cellValue;
+              // 记录变更
+              changes.push({
+                rowIndex: targetDataIndex,
+                columnId: targetColumnId,
+                oldValue,
+                newValue: cellValue,
+                rowData: updatedRow,
+              });
+            }
+          });
+          newData[targetDataIndex] = updatedRow;
+          affectedRowIndices.add(targetDataIndex);
+        } else if (targetDisplayRowIndex >= displayData.length) {
+          // 如果超出显示范围，在数据末尾创建新行
+          const templateRow = newData[newData.length - 1];
+          const newRow = templateRow ? { ...templateRow } : ({} as T);
+          const newRowIndex = newData.length;
+          pastedRow.forEach((cellValue, colOffset) => {
+            const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
+            if (targetColumnId) {
+              (newRow as any)[targetColumnId] = cellValue;
+              // 记录变更（新行的 oldValue 为 undefined）
+              changes.push({
+                rowIndex: newRowIndex,
+                columnId: targetColumnId,
+                oldValue: undefined,
+                newValue: cellValue,
+                rowData: newRow,
+              });
+            }
+          });
+          newData.push(newRow);
+          affectedRowIndices.add(newRowIndex);
         }
-        
-        return newData;
       });
+
+      // 更新状态
+      setTableData(newData);
+
+      // 构建变更信息并回调（在状态更新后）
+      if (onDataChange && changes.length > 0) {
+        const affectedIndices = Array.from(affectedRowIndices).sort((a, b) => a - b);
+        const changeInfo: DataChangeInfo<T> = {
+          type: 'paste',
+          changes,
+          affectedRows: affectedIndices.map((idx) => newData[idx]),
+          affectedRowIndices: affectedIndices,
+        };
+        // 使用 setTimeout 确保状态更新完成后再回调
+        setTimeout(() => {
+          onDataChange(newData, changeInfo);
+        }, 0);
+      }
     },
     [table, displayData, tableData, onDataChange]
   );
@@ -1562,14 +1564,18 @@ export function AdvancedTable<T extends Record<string, any>>({
     // 获取旧值
     const oldValue = (displayRow as any)[columnId];
 
-    // 更新数据
-    setTableData((prevData) => {
-      const newData = [...prevData];
-      const updatedRow = { ...newData[originalRowIndex] };
-      (updatedRow as any)[columnId] = value;
-      newData[originalRowIndex] = updatedRow;
+    // 复制并更新数据
+    const newData = [...tableData];
+    const updatedRow = { ...newData[originalRowIndex] };
+    (updatedRow as any)[columnId] = value;
+    newData[originalRowIndex] = updatedRow;
 
-      // 构建变更信息
+    // 更新状态
+    setTableData(newData);
+    setEditingCell(null);
+
+    // 构建变更信息并回调（在状态更新后）
+    if (onDataChange) {
       const changeInfo: DataChangeInfo<T> = {
         type: 'edit',
         changes: [
@@ -1584,16 +1590,11 @@ export function AdvancedTable<T extends Record<string, any>>({
         affectedRows: [updatedRow],
         affectedRowIndices: [originalRowIndex],
       };
-
-      // 回调通知
-      if (onDataChange) {
+      // 使用 setTimeout 确保状态更新完成后再回调
+      setTimeout(() => {
         onDataChange(newData, changeInfo);
-      }
-
-      return newData;
-    });
-
-    setEditingCell(null);
+      }, 0);
+    }
   };
 
   // 取消编辑
@@ -1657,45 +1658,44 @@ export function AdvancedTable<T extends Record<string, any>>({
           }
         });
 
-        // 按照显示顺序更新数据
-        setTableData((prevData) => {
-          const newData = [...prevData];
+        // 复制当前数据进行修改
+        const newData = [...tableData];
+        
+        // 遍历粘贴的每一行（纵向）
+        pastedRows.forEach((pastedRow, rowOffset) => {
+          // 计算目标行在 displayData 中的索引
+          const targetDisplayRowIndex = startRowIndex + rowOffset;
           
-          // 遍历粘贴的每一行（纵向）
-          pastedRows.forEach((pastedRow, rowOffset) => {
-            // 计算目标行在 displayData 中的索引
-            const targetDisplayRowIndex = startRowIndex + rowOffset;
-            
-            // 获取目标行在原始数据中的索引
-            const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
-            
-            if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
-              // 更新现有行：按可见列顺序横向填充
-              const updatedRow = { ...newData[targetDataIndex] };
-              pastedRow.forEach((cellValue, colOffset) => {
-                // 使用列索引直接定位目标列
-                const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-                if (targetColumnId) {
-                  (updatedRow as any)[targetColumnId] = cellValue;
-                }
-              });
-              newData[targetDataIndex] = updatedRow;
-            } else if (targetDisplayRowIndex >= displayData.length) {
-              // 如果超出显示范围，在数据末尾创建新行
-              const templateRow = newData[newData.length - 1];
-              const newRow = templateRow ? { ...templateRow } : ({} as T);
-              pastedRow.forEach((cellValue, colOffset) => {
-                const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-                if (targetColumnId) {
-                  (newRow as any)[targetColumnId] = cellValue;
-                }
-              });
-              newData.push(newRow);
-            }
-          });
+          // 获取目标行在原始数据中的索引
+          const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
           
-          return newData;
+          if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
+            // 更新现有行：按可见列顺序横向填充
+            const updatedRow = { ...newData[targetDataIndex] };
+            pastedRow.forEach((cellValue, colOffset) => {
+              // 使用列索引直接定位目标列
+              const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
+              if (targetColumnId) {
+                (updatedRow as any)[targetColumnId] = cellValue;
+              }
+            });
+            newData[targetDataIndex] = updatedRow;
+          } else if (targetDisplayRowIndex >= displayData.length) {
+            // 如果超出显示范围，在数据末尾创建新行
+            const templateRow = newData[newData.length - 1];
+            const newRow = templateRow ? { ...templateRow } : ({} as T);
+            pastedRow.forEach((cellValue, colOffset) => {
+              const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
+              if (targetColumnId) {
+                (newRow as any)[targetColumnId] = cellValue;
+              }
+            });
+            newData.push(newRow);
+          }
         });
+        
+        // 更新状态
+        setTableData(newData);
       }
     };
 

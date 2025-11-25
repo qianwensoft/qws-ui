@@ -107,6 +107,10 @@ const columns: ColumnDef<Person>[] = [
 
 function App() {
   const [data, setData] = React.useState<Person[]>(initialData);
+  
+  // 分页状态
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
 
   // 数据变更回调（包含详细变更信息）
   const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
@@ -165,6 +169,22 @@ function App() {
     // }
   };
 
+  // 分页变化回调
+  const handlePageChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex);
+    console.log('页码变化:', newPageIndex + 1);
+    // 示例：调用接口获取新页数据
+    // fetchData({ pageIndex: newPageIndex, pageSize });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPageIndex(0); // 重置到第一页
+    console.log('每页条数变化:', newPageSize);
+    // 示例：调用接口获取新数据
+    // fetchData({ pageIndex: 0, pageSize: newPageSize });
+  };
+
   return (
     <div className="app">
       <div className="app-header">
@@ -188,6 +208,9 @@ function App() {
           <div className="feature-item">
             <strong>功能 6:</strong> 导出 Excel - 点击"导出"按钮，支持导出当前数据、当前页或全部数据（所见即所得）
           </div>
+          <div className="feature-item">
+            <strong>功能 7:</strong> 分页 - 支持页码导航、每页条数选择、快速跳转
+          </div>
         </div>
       </div>
       <div className="app-content">
@@ -197,11 +220,21 @@ function App() {
           onDataChange={handleDataChange}
           onFilterChange={handleFilterChange}
           enableFiltering={false}
-          enableEditing={false}
-          enablePaste={false}
+          enableEditing={true}
+          enablePaste={true}
           enableExport={true}
           enableColumnReorder={true}
           exportFilename="员工数据"
+          // 分页配置
+          enablePagination={true}
+          pagination={{
+            pageIndex,
+            pageSize,
+            totalCount: initialData.length,  // 实际使用时从接口获取总数
+          }}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={[5, 10, 20, 50]}
         />
       </div>
     </div>
