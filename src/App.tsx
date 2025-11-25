@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdvancedTable, type OnFilterChange, type ColumnFilters } from './components/AdvancedTable';
+import { AdvancedTable, type OnFilterChange, type DataChangeInfo } from './components/AdvancedTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import './App.css';
 
@@ -69,19 +69,19 @@ const columns: ColumnDef<Person>[] = [
     id: 'name',
     accessorKey: 'name',
     header: '姓名',
-    size: 120,
   },
   {
     id: 'age',
     accessorKey: 'age',
     header: '年龄',
-    size: 80,
   },
   {
     id: 'email',
     accessorKey: 'email',
     header: '邮箱',
-    size: 200,
+    meta: {
+      editable: false,  // 禁用该列的编辑功能
+    },
   },
   {
     id: 'department',
@@ -93,7 +93,6 @@ const columns: ColumnDef<Person>[] = [
     id: 'salary',
     accessorKey: 'salary',
     header: '薪资',
-    size: 120,
     cell: ({ getValue }) => {
       const value = getValue() as number;
       return `¥${value.toLocaleString()}`;
@@ -103,16 +102,41 @@ const columns: ColumnDef<Person>[] = [
     id: 'status',
     accessorKey: 'status',
     header: '状态',
-    size: 100,
   },
 ];
 
 function App() {
   const [data, setData] = React.useState<Person[]>(initialData);
 
-  const handleDataChange = (newData: Person[]) => {
+  // 数据变更回调（包含详细变更信息）
+  const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
     setData(newData);
-    console.log('数据已更新:', newData);
+    
+    if (changeInfo) {
+      console.log('数据变更详情:', {
+        type: changeInfo.type,                    // 变更类型：'edit' 或 'paste'
+        changes: changeInfo.changes,               // 变更的单元格列表
+        affectedRows: changeInfo.affectedRows,     // 受影响的行数据
+        affectedRowIndices: changeInfo.affectedRowIndices,  // 受影响的行索引
+      });
+
+      // 示例：调用接口保存变更
+      // try {
+      //   await fetch('/api/save', {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       type: changeInfo.type,
+      //       changes: changeInfo.changes,
+      //       affectedRows: changeInfo.affectedRows,
+      //     }),
+      //   });
+      // } catch (error) {
+      //   console.error('保存失败:', error);
+      // }
+    } else {
+      console.log('数据已更新:', newData);
+    }
   };
 
   // 过滤变化回调（可用于接口调用）
@@ -172,8 +196,11 @@ function App() {
           columns={columns}
           onDataChange={handleDataChange}
           onFilterChange={handleFilterChange}
-          enableFiltering={true}
+          enableFiltering={false}
+          enableEditing={false}
+          enablePaste={false}
           enableExport={true}
+          enableColumnReorder={true}
           exportFilename="员工数据"
         />
       </div>

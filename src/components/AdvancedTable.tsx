@@ -6,6 +6,7 @@ import {
   ColumnDef,
   ColumnResizeMode,
   VisibilityState,
+  RowData,
 } from '@tanstack/react-table';
 import {
   DndContext,
@@ -31,6 +32,13 @@ import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, Che
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import './AdvancedTable.css';
+
+// 扩展 @tanstack/react-table 的 ColumnMeta 类型
+declare module '@tanstack/react-table' {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    editable?: boolean;  // 列级别的编辑开关，默认 true
+  }
+}
 
 // 过滤操作符类型
 export type FilterOperator = 'equals' | 'notEquals' | 'greaterThan' | 'lessThan' | 'greaterThanOrEqual' | 'lessThanOrEqual' | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'isEmpty' | 'isNotEmpty';
@@ -362,6 +370,8 @@ interface DraggableColumnHeaderProps {
   onFilterClick: (e: React.MouseEvent) => void;
   filterButtonRef?: (el: HTMLButtonElement | null) => void;
   onColumnResize?: (columnId: string, size: number) => void;
+  showFilter?: boolean;  // 是否显示过滤按钮
+  showDragHandle?: boolean;  // 是否显示拖拽手柄
 }
 
 const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
@@ -371,6 +381,8 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   onFilterClick,
   filterButtonRef,
   onColumnResize,
+  showFilter = true,
+  showDragHandle = true,
 }) => {
   const {
     attributes,
@@ -397,26 +409,30 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
       colSpan={column.columnDef.meta?.colSpan}
     >
       <div className="header-content">
-        <button
-          className="drag-handle"
-          {...attributes}
-          {...listeners}
-          title="拖拽排序"
-        >
-          <GripVertical size={16} />
-        </button>
+        {showDragHandle && (
+          <button
+            className="drag-handle"
+            {...attributes}
+            {...listeners}
+            title="拖拽排序"
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         <div className="header-title" style={{ flex: 1, minWidth: 0 }}>
           {children}
         </div>
-        <button
-          ref={filterButtonRef}
-          className={`filter-button ${hasFilters ? 'filter-active' : ''}`}
-          onClick={onFilterClick}
-          title="过滤"
-          style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}
-        >
-          <Filter size={14} />
-        </button>
+        {showFilter && (
+          <button
+            ref={filterButtonRef}
+            className={`filter-button ${hasFilters ? 'filter-active' : ''}`}
+            onClick={onFilterClick}
+            title="过滤"
+            style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}
+          >
+            <Filter size={14} />
+          </button>
+        )}
         <div
           className="resize-handle"
           onMouseDown={(e) => {
@@ -458,6 +474,7 @@ interface SortableColumnItemProps {
   onToggleColumn: (columnId: string) => void;
   onMoveUp: (columnId: string) => void;
   onMoveDown: (columnId: string) => void;
+  enableReorder?: boolean;  // 是否启用排序功能
 }
 
 const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
@@ -468,6 +485,7 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
   onToggleColumn,
   onMoveUp,
   onMoveDown,
+  enableReorder = false,
 }) => {
   const {
     attributes,
@@ -495,14 +513,16 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
       style={style}
       className={`column-settings-item ${isDragging ? 'dragging' : ''}`}
     >
-      <button
-        className="column-drag-handle"
-        {...attributes}
-        {...listeners}
-        title="拖拽排序"
-      >
-        <GripVertical size={16} />
-      </button>
+      {enableReorder && (
+        <button
+          className="column-drag-handle"
+          {...attributes}
+          {...listeners}
+          title="拖拽排序"
+        >
+          <GripVertical size={16} />
+        </button>
+      )}
       <label className="column-checkbox">
         <input
           type="checkbox"
@@ -511,24 +531,26 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
         />
         <span>{column.columnDef.header as string}</span>
       </label>
-      <div className="column-order-controls">
-        <button
-          className="column-move-button"
-          onClick={() => onMoveUp(column.id)}
-          disabled={isFirst}
-          title="上移"
-        >
-          <ChevronUp size={16} />
-        </button>
-        <button
-          className="column-move-button"
-          onClick={() => onMoveDown(column.id)}
-          disabled={isLast}
-          title="下移"
-        >
-          <ChevronDown size={16} />
-        </button>
-      </div>
+      {enableReorder && (
+        <div className="column-order-controls">
+          <button
+            className="column-move-button"
+            onClick={() => onMoveUp(column.id)}
+            disabled={isFirst}
+            title="上移"
+          >
+            <ChevronUp size={16} />
+          </button>
+          <button
+            className="column-move-button"
+            onClick={() => onMoveDown(column.id)}
+            disabled={isLast}
+            title="下移"
+          >
+            <ChevronDown size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -541,6 +563,7 @@ interface ColumnVisibilityModalProps {
   onToggleColumn: (columnId: string) => void;
   onColumnOrderChange: (newOrder: string[]) => void;
   onClose: () => void;
+  enableReorder?: boolean;  // 是否启用排序功能，默认 false
 }
 
 const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
@@ -550,6 +573,7 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
   onToggleColumn,
   onColumnOrderChange,
   onClose,
+  enableReorder = false,
 }) => {
   // 根据 columnOrder 排序列
   const orderedColumns = useMemo(() => {
@@ -606,9 +630,11 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
           </button>
         </div>
         <div className="modal-body">
-          <div className="column-settings-hint">
-            <p>拖拽左侧图标或使用上下箭头调整列顺序</p>
-          </div>
+          {enableReorder && (
+            <div className="column-settings-hint">
+              <p>拖拽左侧图标或使用上下箭头调整列顺序</p>
+            </div>
+          )}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -625,6 +651,7 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
                   onToggleColumn={onToggleColumn}
                   onMoveUp={handleMoveUp}
                   onMoveDown={handleMoveDown}
+                  enableReorder={enableReorder}
                 />
               ))}
             </SortableContext>
@@ -796,26 +823,236 @@ export interface ExportOptions {
   sheetName?: string;
 }
 
+// 分页配置接口
+export interface PaginationConfig {
+  pageIndex: number;      // 当前页码（从0开始）
+  pageSize: number;       // 每页条数
+  totalCount: number;     // 总条数
+}
+
+// 分页回调接口
+export interface PaginationCallbacks {
+  onPageChange?: (pageIndex: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+}
+
+// 分页组件 Props
+interface PaginationProps {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (pageIndex: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  pageSizeOptions?: number[];
+}
+
+// 分页组件
+const Pagination: React.FC<PaginationProps> = ({
+  pageIndex,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50, 100],
+}) => {
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startItem = pageIndex * pageSize + 1;
+  const endItem = Math.min((pageIndex + 1) * pageSize, totalCount);
+
+  // 生成页码数组
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const showPages = 5; // 显示的页码数量
+    
+    if (totalPages <= showPages + 2) {
+      // 总页数较少，全部显示
+      for (let i = 0; i < totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // 总页数较多，显示省略号
+      pages.push(0); // 第一页
+      
+      let start = Math.max(1, pageIndex - Math.floor(showPages / 2));
+      let end = Math.min(totalPages - 2, pageIndex + Math.floor(showPages / 2));
+      
+      // 调整范围
+      if (start <= 1) {
+        end = Math.min(showPages, totalPages - 2);
+        start = 1;
+      }
+      if (end >= totalPages - 2) {
+        start = Math.max(1, totalPages - showPages - 1);
+        end = totalPages - 2;
+      }
+      
+      if (start > 1) {
+        pages.push('...');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 2) {
+        pages.push('...');
+      }
+      
+      pages.push(totalPages - 1); // 最后一页
+    }
+    
+    return pages;
+  };
+
+  if (totalCount === 0) {
+    return (
+      <div className="pagination-container">
+        <span className="pagination-info">暂无数据</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pagination-container">
+      <div className="pagination-info">
+        显示 {startItem}-{endItem} 条，共 {totalCount} 条
+      </div>
+      
+      <div className="pagination-controls">
+        <div className="pagination-size-selector">
+          <span>每页</span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="pagination-size-select"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+          <span>条</span>
+        </div>
+
+        <div className="pagination-buttons">
+          <button
+            className="pagination-button"
+            onClick={() => onPageChange(0)}
+            disabled={pageIndex === 0}
+            title="首页"
+          >
+            «
+          </button>
+          <button
+            className="pagination-button"
+            onClick={() => onPageChange(pageIndex - 1)}
+            disabled={pageIndex === 0}
+            title="上一页"
+          >
+            ‹
+          </button>
+          
+          {getPageNumbers().map((page, index) => (
+            typeof page === 'number' ? (
+              <button
+                key={index}
+                className={`pagination-button ${page === pageIndex ? 'active' : ''}`}
+                onClick={() => onPageChange(page)}
+              >
+                {page + 1}
+              </button>
+            ) : (
+              <span key={index} className="pagination-ellipsis">
+                {page}
+              </span>
+            )
+          ))}
+          
+          <button
+            className="pagination-button"
+            onClick={() => onPageChange(pageIndex + 1)}
+            disabled={pageIndex >= totalPages - 1}
+            title="下一页"
+          >
+            ›
+          </button>
+          <button
+            className="pagination-button"
+            onClick={() => onPageChange(totalPages - 1)}
+            disabled={pageIndex >= totalPages - 1}
+            title="末页"
+          >
+            »
+          </button>
+        </div>
+
+        <div className="pagination-jumper">
+          <span>跳至</span>
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            className="pagination-jumper-input"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const value = parseInt((e.target as HTMLInputElement).value, 10);
+                if (value >= 1 && value <= totalPages) {
+                  onPageChange(value - 1);
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }
+            }}
+          />
+          <span>页</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 数据变更类型
+export type DataChangeType = 'edit' | 'paste';
+
+// 单个变更项
+export interface DataChangeItem<T> {
+  rowIndex: number;       // 数据行索引
+  columnId: string;       // 列ID
+  oldValue: any;          // 旧值
+  newValue: any;          // 新值
+  rowData: T;             // 变更后的整行数据
+}
+
+// 数据变更信息
+export interface DataChangeInfo<T> {
+  type: DataChangeType;           // 变更类型
+  changes: DataChangeItem<T>[];   // 变更的单元格列表
+  affectedRows: T[];              // 受影响的行数据
+  affectedRowIndices: number[];   // 受影响的行索引
+}
+
 // 主表格组件
 export interface AdvancedTableProps<T extends Record<string, any>> {
   data: T[];
   columns: ColumnDef<T>[];
-  onDataChange?: (data: T[]) => void;
+  onDataChange?: (data: T[], changeInfo?: DataChangeInfo<T>) => void;
   onFilterChange?: OnFilterChange<T>;
   enableFiltering?: boolean;
   enableEditing?: boolean;
+  enablePaste?: boolean;  // 是否启用粘贴功能，默认 true
   enableZebraStripes?: boolean;
   enableCrossHighlight?: boolean;
   zebraStripeColor?: string;
   crossHighlightColor?: string;
   enableExport?: boolean;
   exportFilename?: string;
+  enableColumnReorder?: boolean; // 是否启用列设置中的排序功能，默认 false
   // 分页相关
-  pagination?: {
-    pageIndex: number;
-    pageSize: number;
-    totalCount: number;
-  };
+  enablePagination?: boolean;  // 是否启用分页，默认 false
+  pagination?: PaginationConfig;
+  onPageChange?: (pageIndex: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];  // 每页条数选项
   allData?: T[]; // 用于分页时导出全部数据
 }
 
@@ -826,13 +1063,19 @@ export function AdvancedTable<T extends Record<string, any>>({
   onFilterChange,
   enableFiltering = true,
   enableEditing = true,
+  enablePaste = true,
   enableZebraStripes = true,
   enableCrossHighlight = true,
   zebraStripeColor = '#fafafa',
   crossHighlightColor = '#e6f7ff',
   enableExport = true,
   exportFilename = '表格数据',
+  enableColumnReorder = false,
+  enablePagination = false,
   pagination,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50, 100],
   allData,
 }: AdvancedTableProps<T>) {
   const [tableData, setTableData] = useState<T[]>(data);
@@ -879,13 +1122,6 @@ export function AdvancedTable<T extends Record<string, any>>({
       return [...prevOrder.filter((id) => newColumnIds.includes(id)), ...newIds];
     });
   }, [columns]);
-
-  // 通知外部数据变化
-  React.useEffect(() => {
-    if (onDataChange) {
-      onDataChange(tableData);
-    }
-  }, [tableData, onDataChange]);
 
   // 应用过滤条件
   const applyFilter = useCallback((row: T, filters: FilterCondition[], columnId: string): boolean => {
@@ -1118,6 +1354,10 @@ export function AdvancedTable<T extends Record<string, any>>({
         }
       });
 
+      // 收集变更信息
+      const changes: DataChangeItem<T>[] = [];
+      const affectedRowIndices: Set<number> = new Set();
+
       // 按照显示顺序更新数据
       setTableData((prevData) => {
         const newData = [...prevData];
@@ -1132,33 +1372,66 @@ export function AdvancedTable<T extends Record<string, any>>({
           
           if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
             // 更新现有行：按可见列顺序横向填充
-            const updatedRow = { ...newData[targetDataIndex] };
+            const oldRow = newData[targetDataIndex];
+            const updatedRow = { ...oldRow };
             pastedRow.forEach((cellValue, colOffset) => {
               // 使用列索引直接定位目标列
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
               if (targetColumnId) {
+                const oldValue = (oldRow as any)[targetColumnId];
                 (updatedRow as any)[targetColumnId] = cellValue;
+                // 记录变更
+                changes.push({
+                  rowIndex: targetDataIndex,
+                  columnId: targetColumnId,
+                  oldValue,
+                  newValue: cellValue,
+                  rowData: updatedRow,
+                });
               }
             });
             newData[targetDataIndex] = updatedRow;
+            affectedRowIndices.add(targetDataIndex);
           } else if (targetDisplayRowIndex >= displayData.length) {
             // 如果超出显示范围，在数据末尾创建新行
             const templateRow = newData[newData.length - 1];
             const newRow = templateRow ? { ...templateRow } : ({} as T);
+            const newRowIndex = newData.length;
             pastedRow.forEach((cellValue, colOffset) => {
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
               if (targetColumnId) {
                 (newRow as any)[targetColumnId] = cellValue;
+                // 记录变更（新行的 oldValue 为 undefined）
+                changes.push({
+                  rowIndex: newRowIndex,
+                  columnId: targetColumnId,
+                  oldValue: undefined,
+                  newValue: cellValue,
+                  rowData: newRow,
+                });
               }
             });
             newData.push(newRow);
+            affectedRowIndices.add(newRowIndex);
           }
         });
+
+        // 构建变更信息并回调
+        if (onDataChange && changes.length > 0) {
+          const affectedIndices = Array.from(affectedRowIndices).sort((a, b) => a - b);
+          const changeInfo: DataChangeInfo<T> = {
+            type: 'paste',
+            changes,
+            affectedRows: affectedIndices.map((idx) => newData[idx]),
+            affectedRowIndices: affectedIndices,
+          };
+          onDataChange(newData, changeInfo);
+        }
         
         return newData;
       });
     },
-    [table, displayData, tableData]
+    [table, displayData, tableData, onDataChange]
   );
 
   // 处理单元格点击
@@ -1183,12 +1456,37 @@ export function AdvancedTable<T extends Record<string, any>>({
     const originalRowIndex = tableData.findIndex((row) => row === displayRow);
     if (originalRowIndex === -1) return;
 
+    // 获取旧值
+    const oldValue = (displayRow as any)[columnId];
+
     // 更新数据
     setTableData((prevData) => {
       const newData = [...prevData];
       const updatedRow = { ...newData[originalRowIndex] };
       (updatedRow as any)[columnId] = value;
       newData[originalRowIndex] = updatedRow;
+
+      // 构建变更信息
+      const changeInfo: DataChangeInfo<T> = {
+        type: 'edit',
+        changes: [
+          {
+            rowIndex: originalRowIndex,
+            columnId,
+            oldValue,
+            newValue: value,
+            rowData: updatedRow,
+          },
+        ],
+        affectedRows: [updatedRow],
+        affectedRowIndices: [originalRowIndex],
+      };
+
+      // 回调通知
+      if (onDataChange) {
+        onDataChange(newData, changeInfo);
+      }
+
       return newData;
     });
 
@@ -1215,6 +1513,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   // 添加全局粘贴事件监听（按照所见即所得的顺序：先横向后纵向填充）
   React.useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (!enablePaste) return;  // 检查是否启用粘贴
       if (!selectedCell) return;
       
       const activeElement = document.activeElement;
@@ -1301,7 +1600,7 @@ export function AdvancedTable<T extends Record<string, any>>({
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [selectedCell, table, displayData, tableData]);
+  }, [selectedCell, table, displayData, tableData, enablePaste]);
 
   // 切换列显示/隐藏
   const toggleColumn = (columnId: string) => {
@@ -1575,6 +1874,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                           key={header.id}
                           column={header.column}
                           hasFilters={hasFilters || false}
+                          showFilter={enableFiltering}
+                          showDragHandle={enableColumnReorder}
                           onFilterClick={(e) => {
                             if (enableFiltering) {
                               handleFilterButtonClick(columnId, e);
@@ -1665,7 +1966,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                             }
                           }}
                           onPaste={(e) => {
-                            if (!isEditing) {
+                            if (enablePaste && !isEditing) {
                               // 传递列索引而不是列ID，确保所见即所得
                               handlePaste(e, rowIndex, columnIndex);
                             }
@@ -1677,7 +1978,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                           tabIndex={0}
                         >
-                          {enableEditing && !(columnDef.meta as any)?.readonly ? (
+                          {/* 编辑条件：全局开启 + 列级别未禁用（editable 默认 true，显式设为 false 才禁用） */}
+                          {enableEditing && columnDef.meta?.editable !== false ? (
                             <EditableCell
                               value={cellValue}
                               rowIndex={rowIndex}
@@ -1705,6 +2007,18 @@ export function AdvancedTable<T extends Record<string, any>>({
         </div>
       </DndContext>
 
+      {/* 分页组件 */}
+      {enablePagination && pagination && onPageChange && onPageSizeChange && (
+        <Pagination
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          totalCount={pagination.totalCount}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={pageSizeOptions}
+        />
+      )}
+
       {showColumnModal && (
         <ColumnVisibilityModal
           columns={table.getAllColumns()}
@@ -1713,6 +2027,7 @@ export function AdvancedTable<T extends Record<string, any>>({
           onToggleColumn={toggleColumn}
           onColumnOrderChange={setColumnOrder}
           onClose={() => setShowColumnModal(false)}
+          enableReorder={enableColumnReorder}
         />
       )}
 
