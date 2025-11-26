@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { Type, Image, Barcode, QrCode, Minus, Square, Table } from 'lucide-react';
+import { Type, Image, Barcode, QrCode, Minus, Square, Table, ZoomIn, ZoomOut, Ruler } from 'lucide-react';
 import './PrintDesigner.css';
 
 // 纸张尺寸定义（单位：mm）
@@ -61,6 +61,88 @@ export interface PrintDesignerProps {
   readOnly?: boolean;  // 只读模式（不可编辑）
   showToolbar?: boolean;  // 是否显示工具栏
 }
+
+// 标尺组件
+interface RulerProps {
+  type: 'horizontal' | 'vertical';
+  length: number;  // 长度（px）
+  zoom: number;    // 缩放比例
+}
+
+const Ruler: React.FC<RulerProps> = ({ type, length, zoom }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 设置canvas尺寸
+    if (type === 'horizontal') {
+      canvas.width = length;
+      canvas.height = 20;
+    } else {
+      canvas.width = 20;
+      canvas.height = length;
+    }
+
+    // 清除画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制刻度
+    ctx.strokeStyle = '#8c8c8c';
+    ctx.fillStyle = '#595959';
+    ctx.font = '10px Arial';
+
+    const step = 10 * zoom; // 每10px一个小刻度
+    const bigStep = 50 * zoom; // 每50px一个大刻度
+
+    for (let i = 0; i <= length; i += step) {
+      const isBig = i % bigStep === 0;
+      const lineLength = isBig ? 10 : 5;
+
+      if (type === 'horizontal') {
+        ctx.beginPath();
+        ctx.moveTo(i, 20);
+        ctx.lineTo(i, 20 - lineLength);
+        ctx.stroke();
+
+        if (isBig && i > 0) {
+          const mm = Math.round((i / zoom / 96) * 25.4);
+          ctx.fillText(mm + 'mm', i + 2, 10);
+        }
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(20, i);
+        ctx.lineTo(20 - lineLength, i);
+        ctx.stroke();
+
+        if (isBig && i > 0) {
+          const mm = Math.round((i / zoom / 96) * 25.4);
+          ctx.save();
+          ctx.translate(10, i - 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.fillText(mm + 'mm', 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+  }, [type, length, zoom]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`ruler ruler-${type}`}
+      style={{
+        display: 'block',
+      }}
+    />
+  );
+};
 
 // 公式解析器：支持 {{field}} 和简单计算
 const parseBinding = (binding: string, data: Record<string, any>): string => {
@@ -211,6 +293,9 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     }
   );
   const [showLeftPanel, setShowLeftPanel] = useState(true);
+  const [zoom, setZoom] = useState(1);  // 缩放比例
+  const [showRuler, setShowRuler] = useState(true);  // 是否显示标尺
+  const [showGuides, setShowGuides] = useState(true);  // 是否显示对齐线
 
   // mm 转 px（假设 96 DPI）
   const mmToPx = useCallback((mm: number) => {
@@ -253,11 +338,129 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
 
     fabricCanvasRef.current = canvas;
 
+    // 启用对齐辅助线和吸附功能
+    if (!readOnly && showGuides) {
+      const SNAP_DISTANCE = 5; // 吸附距离（px）
+      let verticalLine: fabric.Line | null = null;
+      let horizontalLine: fabric.Line | null = null;
+
+      // 对象移动时显示辅助线
+      canvas.on('object:moving', (e) => {
+        const obj = e.target;
+        if (!obj) return;
+
+        const objects = canvas.getObjects().filter(o => o !== obj);
+        const objLeft = obj.left || 0;
+        const objTop = obj.top || 0;
+        const objWidth = (obj.width || 0) * (obj.scaleX || 1);
+        const objHeight = (obj.height || 0) * (obj.scaleY || 1);
+        const objCenterX = objLeft + objWidth / 2;
+        const objCenterY = objTop + objHeight / 2;
+        const objRight = objLeft + objWidth;
+        const objBottom = objTop + objHeight;
+
+        let snapX: number | null = null;
+        let snapY: number | null = null;
+
+        // 检查与画布边缘的对齐
+        const canvasWidth = canvas.width || 0;
+        const canvasHeight = canvas.height || 0;
+
+        // 左边缘
+        if (Math.abs(objLeft) < SNAP_DISTANCE) snapX = 0;
+        // 右边缘
+        if (Math.abs(objRight - canvasWidth) < SNAP_DISTANCE) snapX = canvasWidth - objWidth;
+        // 水平居中
+        if (Math.abs(objCenterX - canvasWidth / 2) < SNAP_DISTANCE) snapX = canvasWidth / 2 - objWidth / 2;
+
+        // 上边缘
+        if (Math.abs(objTop) < SNAP_DISTANCE) snapY = 0;
+        // 下边缘
+        if (Math.abs(objBottom - canvasHeight) < SNAP_DISTANCE) snapY = canvasHeight - objHeight;
+        // 垂直居中
+        if (Math.abs(objCenterY - canvasHeight / 2) < SNAP_DISTANCE) snapY = canvasHeight / 2 - objHeight / 2;
+
+        // 检查与其他对象的对齐
+        objects.forEach((other) => {
+          const otherLeft = other.left || 0;
+          const otherTop = other.top || 0;
+          const otherWidth = (other.width || 0) * (other.scaleX || 1);
+          const otherHeight = (other.height || 0) * (other.scaleY || 1);
+          const otherCenterX = otherLeft + otherWidth / 2;
+          const otherCenterY = otherTop + otherHeight / 2;
+          const otherRight = otherLeft + otherWidth;
+          const otherBottom = otherTop + otherHeight;
+
+          // 左对齐
+          if (Math.abs(objLeft - otherLeft) < SNAP_DISTANCE) snapX = otherLeft;
+          // 右对齐
+          if (Math.abs(objRight - otherRight) < SNAP_DISTANCE) snapX = otherRight - objWidth;
+          // 中心对齐（水平）
+          if (Math.abs(objCenterX - otherCenterX) < SNAP_DISTANCE) snapX = otherCenterX - objWidth / 2;
+
+          // 上对齐
+          if (Math.abs(objTop - otherTop) < SNAP_DISTANCE) snapY = otherTop;
+          // 下对齐
+          if (Math.abs(objBottom - otherBottom) < SNAP_DISTANCE) snapY = otherBottom - objHeight;
+          // 中心对齐（垂直）
+          if (Math.abs(objCenterY - otherCenterY) < SNAP_DISTANCE) snapY = otherCenterY - objHeight / 2;
+        });
+
+        // 应用吸附
+        if (snapX !== null) obj.set({ left: snapX });
+        if (snapY !== null) obj.set({ top: snapY });
+
+        // 绘制辅助线
+        if (snapX !== null || snapY !== null) {
+          // 移除旧的辅助线
+          if (verticalLine) canvas.remove(verticalLine);
+          if (horizontalLine) canvas.remove(horizontalLine);
+
+          if (snapX !== null) {
+            verticalLine = new fabric.Line([snapX, 0, snapX, canvasHeight], {
+              stroke: '#1890ff',
+              strokeWidth: 1,
+              strokeDashArray: [5, 5],
+              selectable: false,
+              evented: false,
+            });
+            canvas.add(verticalLine);
+          }
+
+          if (snapY !== null) {
+            horizontalLine = new fabric.Line([0, snapY, canvasWidth, snapY], {
+              stroke: '#1890ff',
+              strokeWidth: 1,
+              strokeDashArray: [5, 5],
+              selectable: false,
+              evented: false,
+            });
+            canvas.add(horizontalLine);
+          }
+
+          canvas.renderAll();
+        }
+      });
+
+      // 对象移动结束时移除辅助线
+      canvas.on('mouse:up', () => {
+        if (verticalLine) {
+          canvas.remove(verticalLine);
+          verticalLine = null;
+        }
+        if (horizontalLine) {
+          canvas.remove(horizontalLine);
+          horizontalLine = null;
+        }
+        canvas.renderAll();
+      });
+    }
+
     return () => {
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [readOnly, getPaperSize]);
+  }, [readOnly, getPaperSize, showGuides]);
 
   // 保存模板（避免循环依赖）
   const saveTemplate = useCallback(() => {
@@ -718,8 +921,75 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
               »
             </button>
           )}
-          <div className="canvas-wrapper">
-            <canvas ref={canvasRef} />
+
+          {/* 缩放和工具控制 */}
+          <div className="canvas-controls">
+            <div className="zoom-controls">
+              <button
+                onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+                disabled={zoom <= 0.25}
+                title="缩小"
+              >
+                <ZoomOut size={16} />
+              </button>
+              <span className="zoom-value">{Math.round(zoom * 100)}%</span>
+              <button
+                onClick={() => setZoom(Math.min(2, zoom + 0.25))}
+                disabled={zoom >= 2}
+                title="放大"
+              >
+                <ZoomIn size={16} />
+              </button>
+              <button
+                onClick={() => setZoom(1)}
+                title="重置缩放"
+              >
+                1:1
+              </button>
+            </div>
+
+            <div className="view-controls">
+              <button
+                className={showRuler ? 'active' : ''}
+                onClick={() => setShowRuler(!showRuler)}
+                title="标尺"
+              >
+                <Ruler size={16} />
+              </button>
+              <button
+                className={showGuides ? 'active' : ''}
+                onClick={() => setShowGuides(!showGuides)}
+                title="对齐辅助线"
+              >
+                对齐
+              </button>
+            </div>
+          </div>
+
+          {/* 画布容器（包含标尺） */}
+          <div className="canvas-container">
+            {showRuler && (
+              <>
+                <div className="ruler-corner" />
+                <div className="ruler-top">
+                  <Ruler
+                    type="horizontal"
+                    length={getPaperSize().width * zoom}
+                    zoom={zoom}
+                  />
+                </div>
+                <div className="ruler-left">
+                  <Ruler
+                    type="vertical"
+                    length={getPaperSize().height * zoom}
+                    zoom={zoom}
+                  />
+                </div>
+              </>
+            )}
+            <div className="canvas-wrapper" style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}>
+              <canvas ref={canvasRef} />
+            </div>
           </div>
         </div>
       </div>
