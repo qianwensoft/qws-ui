@@ -1,12 +1,29 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { useState } from 'react';
-import { PrintDesigner, type PrintTemplate, PAPER_SIZES } from '../components/PrintDesigner';
-import '../components/PrintDesigner.css';
+import { useState, Suspense, lazy } from 'react';
+import type { PrintTemplate } from '../components/PrintDesigner';
+
+// 动态导入 PrintDesigner 避免 fabric.js 加载问题
+const PrintDesignerLazy = lazy(() => 
+  import('../components/PrintDesigner').then(module => ({ default: module.PrintDesigner }))
+);
+
+// Loading 组件
+const Loading = () => (
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    height: '100vh',
+    fontSize: '16px',
+    color: '#595959',
+  }}>
+    加载打印设计器...
+  </div>
+);
 
 // Story 元数据
-const meta: Meta<typeof PrintDesigner> = {
+const meta: Meta = {
   title: 'Components/PrintDesigner',
-  component: PrintDesigner,
   parameters: {
     layout: 'fullscreen',
   },
@@ -14,7 +31,7 @@ const meta: Meta<typeof PrintDesigner> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof PrintDesigner>;
+type Story = StoryObj;
 
 // 示例数据 - 产品信息
 const productData = {
@@ -223,16 +240,20 @@ export const Basic: Story = {
     const [template, setTemplate] = useState<PrintTemplate>(basicTemplate);
 
     return (
-      <PrintDesigner
-        template={template}
-        data={productData}
-        onTemplateChange={(newTemplate) => {
-          setTemplate(newTemplate);
-          console.log('模板已更新:', newTemplate);
-        }}
-        readOnly={false}
-        showToolbar={true}
-      />
+      <Suspense fallback={<Loading />}>
+        <Suspense fallback={<Loading />}>
+        <PrintDesignerLazyLazy
+          template={template}
+          data={productData}
+          onTemplateChange={(newTemplate) => {
+            setTemplate(newTemplate);
+            console.log('模板已更新:', newTemplate);
+          }}
+          readOnly={false}
+          showToolbar={true}
+        />
+      </Suspense>
+      </Suspense>
     );
   },
 };
@@ -246,11 +267,13 @@ export const A5Landscape: Story = {
     });
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={productData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
@@ -261,11 +284,13 @@ export const AdvancedFormula: Story = {
     const [template, setTemplate] = useState<PrintTemplate>(advancedTemplate);
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={productData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
@@ -276,11 +301,13 @@ export const OrderPrint: Story = {
     const [template, setTemplate] = useState<PrintTemplate>(orderTemplate);
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={orderData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
@@ -289,12 +316,14 @@ export const OrderPrint: Story = {
 export const ReadOnly: Story = {
   render: () => {
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={basicTemplate}
         data={productData}
         readOnly={true}
         showToolbar={false}
       />
+      </Suspense>
     );
   },
 };
@@ -308,11 +337,13 @@ export const B5Paper: Story = {
     });
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={productData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
@@ -327,11 +358,13 @@ export const EmptyTemplate: Story = {
     });
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={productData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
@@ -399,11 +432,13 @@ export const MultipleDataSources: Story = {
     });
 
     return (
-      <PrintDesigner
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
         template={template}
         data={productData}
         onTemplateChange={setTemplate}
       />
+      </Suspense>
     );
   },
 };
