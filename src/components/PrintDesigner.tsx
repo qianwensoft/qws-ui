@@ -159,26 +159,13 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
 
     fabricCanvasRef.current = canvas;
 
-    // 监听对象修改
-    if (!readOnly) {
-      canvas.on('object:modified', () => {
-        saveTemplate();
-      });
-      canvas.on('object:added', () => {
-        saveTemplate();
-      });
-      canvas.on('object:removed', () => {
-        saveTemplate();
-      });
-    }
-
     return () => {
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [readOnly]);
+  }, [readOnly, getPaperSize]);
 
-  // 保存模板
+  // 保存模板（避免循环依赖）
   const saveTemplate = useCallback(() => {
     if (!fabricCanvasRef.current) return;
 
@@ -204,17 +191,24 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       }
     });
 
-    const newTemplate: PrintTemplate = {
-      ...currentTemplate,
-      elements,
-    };
-
-    setCurrentTemplate(newTemplate);
-    onTemplateChange?.(newTemplate);
-  }, [currentTemplate, onTemplateChange, pxToMm]);
+    // 使用 prevState 避免依赖 currentTemplate
+    setCurrentTemplate((prev) => {
+      const newTemplate: PrintTemplate = {
+        ...prev,
+        elements,
+      };
+      
+      // 延迟回调，避免在渲染期间更新状态
+      setTimeout(() => {
+        onTemplateChange?.(newTemplate);
+      }, 0);
+      
+      return newTemplate;
+    });
+  }, [onTemplateChange, pxToMm]);
 
   // 渲染模板元素
-  const renderElements = useCallback(() => {
+  useEffect(() => {
     if (!fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
@@ -237,7 +231,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
           fontSize: element.fontSize || 14,
           fontFamily: element.fontFamily || 'Arial',
           fill: element.fill || '#000000',
-          fontWeight: element.fontWeight || 'normal',
+          fontWeight: (element.fontWeight as any) || 'normal',
           textAlign: element.textAlign || 'left',
           selectable: !readOnly,
           editable: !readOnly,
@@ -251,19 +245,13 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     canvas.renderAll();
   }, [currentTemplate.elements, data, mmToPx, readOnly]);
 
-  // 当模板或数据变化时重新渲染
-  useEffect(() => {
-    renderElements();
-  }, [renderElements]);
-
   // 当纸张大小变化时调整画布
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
 
     const paperSize = getPaperSize();
     fabricCanvasRef.current.setDimensions(paperSize);
-    renderElements();
-  }, [currentTemplate.paper, getPaperSize, renderElements]);
+  }, [currentTemplate.paper, getPaperSize]);
 
   // 添加文本元素
   const addTextElement = () => {
@@ -274,7 +262,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       type: 'text',
       left: 20,
       top: 20,
-      binding: '{{productName}}',
+      binding: '双击编辑绑定',
       fontSize: 14,
       fontFamily: 'Arial',
       fill: '#000000',
@@ -287,11 +275,12 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       fontFamily: newElement.fontFamily,
       fill: newElement.fill,
       width: 200,
+      editable: true,
     });
 
     (text as any).customData = newElement;
     fabricCanvasRef.current.add(text);
-    saveTemplate();
+    fabricCanvasRef.current.renderAll();
   };
 
   // 删除选中元素
@@ -301,7 +290,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     const activeObject = fabricCanvasRef.current.getActiveObject();
     if (activeObject) {
       fabricCanvasRef.current.remove(activeObject);
-      saveTemplate();
+      fabricCanvasRef.current.renderAll();
     }
   };
 
@@ -386,6 +375,10 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
           <div className="toolbar-section">
             <button onClick={addTextElement}>添加文本</button>
             <button onClick={deleteSelected}>删除选中</button>
+          </div>
+
+          <div className="toolbar-section">
+            <button onClick={saveTemplate}>保存模板</button>
           </div>
 
           <div className="toolbar-section">
