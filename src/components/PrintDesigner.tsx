@@ -711,6 +711,288 @@ const renderLoopTable = (
   });
 };
 
+// 计算循环表格需要的页数和每页数据分配
+const calculateTablePages = (
+  element: DataBindingElement,
+  data: Record<string, any>,
+  mmToPx: (mm: number) => number,
+  paperConfig: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number }
+): { pageCount: number; rowsPerPage: number[] } => {
+  if (!element.isLoopTable || !element.tableConfig) {
+    return { pageCount: 1, rowsPerPage: [] };
+  }
+
+  const config = element.tableConfig;
+  const dataSource = data[config.dataSource] || [];
+
+  if (!Array.isArray(dataSource) || dataSource.length === 0) {
+    return { pageCount: 1, rowsPerPage: [] };
+  }
+
+  const rowHeight = mmToPx(config.rowHeight);
+  const headerHeight = mmToPx(config.headerHeight);
+
+  // 获取纸张尺寸
+  const paperSizes: Record<string, { width: number; height: number }> = {
+    A4: { width: 210, height: 297 },
+    A5: { width: 148, height: 210 },
+    B5: { width: 176, height: 250 },
+  };
+
+  const paperSize = paperSizes[paperConfig.size] || paperSizes.A4;
+  const pageHeight = mmToPx(paperConfig.orientation === 'landscape' ? paperSize.width : paperSize.height);
+  const headerArea = mmToPx(paperConfig.headerHeight || 0);
+  const footerArea = mmToPx(paperConfig.footerHeight || 0);
+
+  const tableStartY = mmToPx(element.top);
+  const firstPageBottom = pageHeight - footerArea;
+
+  // 第一页可用高度
+  let availableHeight = firstPageBottom - tableStartY;
+  if (config.showHeader) {
+    availableHeight -= headerHeight;
+  }
+
+  const firstPageRows = Math.floor(availableHeight / rowHeight);
+  let remainingRows = dataSource.length - firstPageRows;
+
+  const rowsPerPage: number[] = [firstPageRows];
+  let currentPage = 1;
+
+  // 计算后续页面
+  while (remainingRows > 0) {
+    const pageContentHeight = pageHeight - headerArea - footerArea;
+    let pageAvailableHeight = pageContentHeight;
+
+    if (config.showHeader && config.headerRepeat) {
+      pageAvailableHeight -= headerHeight;
+    }
+
+    const rowsThisPage = Math.floor(pageAvailableHeight / rowHeight);
+    rowsPerPage.push(Math.min(rowsThisPage, remainingRows));
+    remainingRows -= rowsThisPage;
+    currentPage++;
+  }
+
+  return { pageCount: currentPage, rowsPerPage };
+};
+
+// 为指定页面渲染表格数据（支持多页）
+const renderTableForPage = (
+  element: DataBindingElement,
+  data: Record<string, any>,
+  mmToPx: (mm: number) => number,
+  paperConfig: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number },
+  pageIndex: number,
+  rowsPerPage: number[]
+): fabric.Object[] => {
+  if (!element.isLoopTable || !element.tableConfig) {
+    return [];
+  }
+
+  const config = element.tableConfig;
+  const dataSource = data[config.dataSource] || [];
+
+  if (!Array.isArray(dataSource)) {
+    return [];
+  }
+
+  const elements: fabric.Object[] = [];
+  const tableWidth = mmToPx(element.width || 180);
+  const rowHeight = mmToPx(config.rowHeight);
+  const headerHeight = mmToPx(config.headerHeight);
+  const borderWidth = config.borderWidth;
+  const borderColor = config.borderColor;
+
+  // 获取纸张尺寸
+  const paperSizes: Record<string, { width: number; height: number }> = {
+    A4: { width: 210, height: 297 },
+    A5: { width: 148, height: 210 },
+    B5: { width: 176, height: 250 },
+  };
+
+  const paperSize = paperSizes[paperConfig.size] || paperSizes.A4;
+  const headerArea = mmToPx(paperConfig.headerHeight || 0);
+
+  // 计算列宽
+  const totalCustomWidth = config.columns.reduce((sum, col) => sum + (col.width || 0), 0);
+  const autoWidthCount = config.columns.filter(col => !col.width).length;
+  const autoWidth = autoWidthCount > 0
+    ? (mmToPx(element.width || 180) - mmToPx(totalCustomWidth)) / autoWidthCount
+    : 0;
+
+  const columnWidths = config.columns.map(col => col.width ? mmToPx(col.width) : autoWidth);
+
+  // 渲染表头的辅助函数
+  const renderHeader = (currentY: number) => {
+    const headerElements: fabric.Object[] = [];
+
+    if (config.headerBgColor) {
+      headerElements.push(new fabric.Rect({
+        left: 0,
+        top: currentY,
+        width: tableWidth,
+        height: headerHeight,
+        fill: config.headerBgColor,
+        stroke: 'transparent',
+        strokeWidth: 0,
+      }));
+    }
+
+    let x = 0;
+    config.columns.forEach((col, colIndex) => {
+      const colWidth = columnWidths[colIndex];
+
+      headerElements.push(new fabric.Text(col.title, {
+        left: x + colWidth / 2,
+        top: currentY + headerHeight / 2,
+        fontSize: 12,
+        fill: config.headerTextColor || '#000000',
+        fontWeight: 'bold',
+        originX: 'center',
+        originY: 'center',
+      }));
+
+      headerElements.push(new fabric.Line(
+        [x, currentY, x, currentY + headerHeight],
+        { stroke: borderColor, strokeWidth: borderWidth }
+      ));
+
+      x += colWidth;
+    });
+
+    headerElements.push(new fabric.Line(
+      [tableWidth, currentY, tableWidth, currentY + headerHeight],
+      { stroke: borderColor, strokeWidth: borderWidth }
+    ));
+
+    headerElements.push(new fabric.Line(
+      [0, currentY + headerHeight, tableWidth, currentY + headerHeight],
+      { stroke: borderColor, strokeWidth: borderWidth }
+    ));
+
+    headerElements.push(new fabric.Line(
+      [0, currentY, tableWidth, currentY],
+      { stroke: borderColor, strokeWidth: borderWidth }
+    ));
+
+    return headerElements;
+  };
+
+  // 确定本页起始位置
+  let tableTop = pageIndex === 0 ? mmToPx(element.top) : headerArea;
+  let currentY = 0;
+
+  // 渲染表头
+  if (config.showHeader && (pageIndex === 0 || config.headerRepeat)) {
+    elements.push(...renderHeader(currentY));
+    currentY += headerHeight;
+  }
+
+  // 计算本页要渲染的数据行范围
+  let startRowIndex = 0;
+  for (let i = 0; i < pageIndex; i++) {
+    startRowIndex += rowsPerPage[i];
+  }
+  const endRowIndex = startRowIndex + rowsPerPage[pageIndex];
+
+  // 绘制本页的数据行
+  for (let rowIndex = startRowIndex; rowIndex < endRowIndex && rowIndex < dataSource.length; rowIndex++) {
+    const row = dataSource[rowIndex];
+    const displayRowIndex = rowIndex - startRowIndex;
+
+    const bgColor = rowIndex % 2 === 0 ? config.evenRowBgColor : config.oddRowBgColor;
+    if (bgColor) {
+      elements.push(new fabric.Rect({
+        left: 0,
+        top: currentY,
+        width: tableWidth,
+        height: rowHeight,
+        fill: bgColor,
+        stroke: 'transparent',
+        strokeWidth: 0,
+      }));
+    }
+
+    let x = 0;
+    config.columns.forEach((col, colIndex) => {
+      const colWidth = columnWidths[colIndex];
+
+      let cellValue = '';
+      if (/[+\-*/]/.test(col.field)) {
+        try {
+          const formula = col.field.replace(/([a-zA-Z_]\w*)/g, (match) => {
+            const value = row[match];
+            return value !== undefined ? String(value) : '0';
+          });
+          const result = Function(`"use strict"; return (${formula})`)();
+          cellValue = String(result);
+        } catch (e) {
+          console.error('公式计算错误:', col.field, e);
+          cellValue = '';
+        }
+      } else {
+        cellValue = row[col.field] !== undefined ? String(row[col.field]) : '';
+      }
+
+      if (col.formatter) {
+        const formatterWithValue = col.formatter.replace(/\{\{value\}\}/g, cellValue);
+        cellValue = parseBinding(formatterWithValue, row);
+      }
+
+      const textAlign = col.align || 'left';
+      let textLeft = x + 4;
+      let originX: 'left' | 'center' | 'right' = 'left';
+
+      if (textAlign === 'center') {
+        textLeft = x + colWidth / 2;
+        originX = 'center';
+      } else if (textAlign === 'right') {
+        textLeft = x + colWidth - 4;
+        originX = 'right';
+      }
+
+      elements.push(new fabric.Text(cellValue, {
+        left: textLeft,
+        top: currentY + rowHeight / 2,
+        fontSize: 11,
+        fill: '#000000',
+        originX,
+        originY: 'center',
+      }));
+
+      elements.push(new fabric.Line(
+        [x, currentY, x, currentY + rowHeight],
+        { stroke: borderColor, strokeWidth: borderWidth }
+      ));
+
+      x += colWidth;
+    });
+
+    elements.push(new fabric.Line(
+      [tableWidth, currentY, tableWidth, currentY + rowHeight],
+      { stroke: borderColor, strokeWidth: borderWidth }
+    ));
+
+    elements.push(new fabric.Line(
+      [0, currentY + rowHeight, tableWidth, currentY + rowHeight],
+      { stroke: borderColor, strokeWidth: borderWidth }
+    ));
+
+    currentY += rowHeight;
+  }
+
+  // 调整所有元素位置
+  elements.forEach(el => {
+    el.set({
+      left: (el.left || 0) + mmToPx(element.left),
+      top: (el.top || 0) + tableTop,
+    });
+  });
+
+  return elements;
+};
+
 // 组件工具定义
 interface ComponentTool {
   type: DataBindingElement['type'];
@@ -2517,143 +2799,297 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     }));
   };
 
-  // 打印 - 使用 SVG 矢量图，完全无损
+  // 打印 - 支持多页输出
   const handlePrint = () => {
     if (!fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
+    const paperSize = getPaperSize();
+    const paperWidthMm = pxToMm(paperSize.width);
+    const paperHeightMm = pxToMm(paperSize.height);
 
-    // 使用 SVG 矢量图导出，完全无损、无失真
-    const svgString = canvas.toSVG({
-      viewBox: {
-        x: 0,
-        y: 0,
-        width: canvas.width!,
-        height: canvas.height!,
-      },
-      encoding: 'UTF-8',
-    });
+    // 检测是否有循环表格
+    const loopTables = currentTemplate.elements.filter(e => e.type === 'table' && e.isLoopTable);
 
-    // 将 SVG 字符串转换为 Data URL
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(svgBlob);
+    if (loopTables.length === 0) {
+      // 没有循环表格，使用单页打印
+      const svgString = canvas.toSVG({
+        viewBox: {
+          x: 0,
+          y: 0,
+          width: canvas.width!,
+          height: canvas.height!,
+        },
+        encoding: 'UTF-8',
+      });
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      // 获取纸张尺寸（mm）
-      const paperSize = getPaperSize();
-      const paperWidthMm = pxToMm(paperSize.width);
-      const paperHeightMm = pxToMm(paperSize.height);
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>打印预览（矢量图）</title>
-            <style>
-              @page {
-                size: ${paperWidthMm}mm ${paperHeightMm}mm;
-                margin: 0;
-              }
-              @media print {
-                html, body {
-                  width: ${paperWidthMm}mm;
-                  height: ${paperHeightMm}mm;
-                  margin: 0;
-                  padding: 0;
-                }
-                .svg-container {
-                  width: 100%;
-                  height: 100%;
-                  display: block;
-                }
-                svg {
-                  width: 100%;
-                  height: 100%;
-                  display: block;
-                }
-                /* 隐藏打印按钮 */
-                .no-print {
-                  display: none;
-                }
-              }
-              @media screen {
-                body {
-                  margin: 0;
-                  padding: 20px;
-                  background: #f0f0f0;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  gap: 20px;
-                }
-                .svg-container {
-                  max-width: 100%;
-                  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-                  background: white;
-                  padding: 0;
-                }
-                svg {
-                  display: block;
-                  max-width: 100%;
-                  height: auto;
-                }
-                .print-controls {
-                  position: fixed;
-                  top: 20px;
-                  right: 20px;
-                  display: flex;
-                  gap: 10px;
-                  z-index: 1000;
-                }
-                button {
-                  padding: 10px 20px;
-                  background: #1890ff;
-                  color: white;
-                  border: none;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 14px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                }
-                button:hover {
-                  background: #40a9ff;
-                }
-                .close-btn {
-                  background: #ff4d4f;
-                }
-                .close-btn:hover {
-                  background: #ff7875;
-                }
-                .quality-badge {
-                  position: fixed;
-                  top: 20px;
-                  left: 20px;
-                  padding: 8px 16px;
-                  background: #52c41a;
-                  color: white;
-                  border-radius: 4px;
-                  font-size: 13px;
-                  font-weight: bold;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                  z-index: 1000;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="quality-badge no-print">✓ 矢量图 · 无损打印</div>
-            <div class="print-controls no-print">
-              <button onclick="window.print()">🖨️ 打印</button>
-              <button class="close-btn" onclick="window.close()">✕ 关闭</button>
-            </div>
-            <div class="svg-container">
-              ${svgString}
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
+      openPrintWindow([svgString], paperWidthMm, paperHeightMm);
+      return;
     }
+
+    // 有循环表格，计算需要的页数
+    const tableElement = loopTables[0]; // 假设只有一个循环表格
+    const { pageCount, rowsPerPage } = calculateTablePages(tableElement, data, mmToPx, currentTemplate.paper);
+
+    console.log(`📄 需要打印 ${pageCount} 页`, rowsPerPage);
+
+    // 为每一页生成SVG
+    const pageSVGs: string[] = [];
+
+    for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+      // 创建临时canvas
+      const tempCanvas = new fabric.Canvas(document.createElement('canvas'), {
+        width: paperSize.width,
+        height: paperSize.height,
+        backgroundColor: '#ffffff',
+      });
+
+      // 渲染非表格元素（页眉、页脚、其他元素）
+      currentTemplate.elements.forEach((element) => {
+        // 跳过循环表格（单独处理）
+        if (element.type === 'table' && element.isLoopTable) {
+          return;
+        }
+
+        // 判断元素是否在页眉/页脚区域
+        const headerHeight = currentTemplate.paper.headerHeight || 0;
+        const footerHeight = currentTemplate.paper.footerHeight || 0;
+        const isInHeader = element.isHeader || (element.top < headerHeight);
+        const isInFooter = element.isFooter || (element.top > paperHeightMm - footerHeight);
+
+        // 页眉页脚在所有页显示，其他元素只在第一页显示
+        if (!isInHeader && !isInFooter && pageIndex > 0) {
+          return;
+        }
+
+        // 渲染元素
+        let displayValue = element.binding || '';
+        if (element.binding) {
+          displayValue = parseBinding(element.binding, data);
+        }
+
+        let fabricObj: fabric.Object | null = null;
+
+        switch (element.type) {
+          case 'text':
+            fabricObj = new fabric.Textbox(displayValue, {
+              left: mmToPx(element.left),
+              top: mmToPx(element.top),
+              width: element.width ? mmToPx(element.width) : 200,
+              fontSize: element.fontSize || 14,
+              fontFamily: element.fontFamily || 'Arial',
+              fill: element.fill || '#000000',
+              fontWeight: (element.fontWeight as any) || 'normal',
+              textAlign: element.textAlign || 'left',
+              selectable: false,
+            });
+            break;
+
+          case 'line':
+            fabricObj = new fabric.Line(
+              [
+                mmToPx(element.left),
+                mmToPx(element.top),
+                mmToPx(element.left) + mmToPx(element.width || 100),
+                mmToPx(element.top),
+              ],
+              {
+                stroke: element.stroke || '#000000',
+                strokeWidth: element.strokeWidth || 1,
+                selectable: false,
+              }
+            );
+            break;
+
+          case 'rect':
+            fabricObj = new fabric.Rect({
+              left: mmToPx(element.left),
+              top: mmToPx(element.top),
+              width: mmToPx(element.width || 100),
+              height: mmToPx(element.height || 60),
+              fill: element.fill || 'transparent',
+              stroke: element.stroke || '#000000',
+              strokeWidth: element.strokeWidth || 1,
+              selectable: false,
+            });
+            break;
+        }
+
+        if (fabricObj) {
+          tempCanvas.add(fabricObj);
+        }
+      });
+
+      // 渲染当前页的表格数据
+      const tableObjects = renderTableForPage(
+        tableElement,
+        data,
+        mmToPx,
+        currentTemplate.paper,
+        pageIndex,
+        rowsPerPage
+      );
+
+      tableObjects.forEach(obj => {
+        tempCanvas.add(obj);
+      });
+
+      // 生成SVG
+      const svgString = tempCanvas.toSVG({
+        viewBox: {
+          x: 0,
+          y: 0,
+          width: paperSize.width,
+          height: paperSize.height,
+        },
+        encoding: 'UTF-8',
+      });
+
+      pageSVGs.push(svgString);
+
+      // 清理临时canvas
+      tempCanvas.dispose();
+    }
+
+    // 打开打印窗口
+    openPrintWindow(pageSVGs, paperWidthMm, paperHeightMm);
+  };
+
+  // 打开打印窗口的辅助函数
+  const openPrintWindow = (pageSVGs: string[], paperWidthMm: number, paperHeightMm: number) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const pagesHTML = pageSVGs.map((svg, index) => `
+      <div class="page" style="page-break-after: ${index < pageSVGs.length - 1 ? 'always' : 'auto'};">
+        ${svg}
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>打印预览 - ${pageSVGs.length} 页</title>
+          <style>
+            @page {
+              size: ${paperWidthMm}mm ${paperHeightMm}mm;
+              margin: 0;
+            }
+            @media print {
+              html, body {
+                margin: 0;
+                padding: 0;
+              }
+              .page {
+                width: ${paperWidthMm}mm;
+                height: ${paperHeightMm}mm;
+                margin: 0;
+                padding: 0;
+                page-break-after: always;
+              }
+              .page:last-child {
+                page-break-after: auto;
+              }
+              svg {
+                width: 100%;
+                height: 100%;
+                display: block;
+              }
+              .no-print {
+                display: none;
+              }
+            }
+            @media screen {
+              body {
+                margin: 0;
+                padding: 20px;
+                background: #f0f0f0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+              }
+              .page {
+                max-width: 100%;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                background: white;
+                padding: 0;
+                margin-bottom: 20px;
+              }
+              svg {
+                display: block;
+                max-width: 100%;
+                height: auto;
+              }
+              .print-controls {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                gap: 10px;
+                z-index: 1000;
+              }
+              button {
+                padding: 10px 20px;
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+              }
+              button:hover {
+                background: #40a9ff;
+              }
+              .close-btn {
+                background: #ff4d4f;
+              }
+              .close-btn:hover {
+                background: #ff7875;
+              }
+              .quality-badge {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                padding: 8px 16px;
+                background: #52c41a;
+                color: white;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: bold;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                z-index: 1000;
+              }
+              .page-counter {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 8px 16px;
+                background: #1890ff;
+                color: white;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: bold;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                z-index: 1000;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="quality-badge no-print">✓ 矢量图 · 无损打印</div>
+          <div class="page-counter no-print">共 ${pageSVGs.length} 页</div>
+          <div class="print-controls no-print">
+            <button onclick="window.print()">🖨️ 打印</button>
+            <button class="close-btn" onclick="window.close()">✕ 关闭</button>
+          </div>
+          ${pagesHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
