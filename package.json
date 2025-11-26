@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -28,16 +31,21 @@
     "@storybook/addon-onboarding": "^10.0.8",
     "@storybook/addon-vitest": "^10.0.8",
     "@storybook/react-vite": "^10.0.8",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/file-saver": "^2.0.7",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/browser-playwright": "^4.0.14",
+    "@vitest/coverage-v8": "^4.0.14",
+    "jsdom": "^27.2.0",
+    "playwright": "^1.57.0",
     "storybook": "^10.0.8",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vitest": "^4.0.14",
-    "playwright": "^1.57.0",
-    "@vitest/browser-playwright": "^4.0.14",
-    "@vitest/coverage-v8": "^4.0.14"
+    "vitest": "^4.0.14"
   }
 }
