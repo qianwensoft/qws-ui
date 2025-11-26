@@ -92,6 +92,7 @@ interface AutoExpandInputProps {
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   autoFocus?: boolean;
+  useCellWidth?: boolean;  // 是否使用单元格宽度（100%）
 }
 
 const AutoExpandInput: React.FC<AutoExpandInputProps> = ({
@@ -106,25 +107,27 @@ const AutoExpandInput: React.FC<AutoExpandInputProps> = ({
   onBlur,
   inputRef: externalInputRef,
   autoFocus = false,
+  useCellWidth = false,
 }) => {
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || internalInputRef;
   const measureRef = useRef<HTMLSpanElement>(null);
-  const [width, setWidth] = useState(minWidth);
+  const [width, setWidth] = useState(maxWidth);  // 初始宽度使用最大宽度
 
-  // 根据内容计算宽度
+  // 根据内容计算宽度（仅在非单元格宽度模式下）
   React.useEffect(() => {
-    if (measureRef.current) {
+    if (!useCellWidth && measureRef.current) {
       const text = String(value || '');
       const placeholderText = placeholder || '';
       const displayText = text || placeholderText;
       
       measureRef.current.textContent = displayText || 'M'; // 至少一个字符来测量
       const measuredWidth = measureRef.current.offsetWidth;
+      // 如果内容宽度小于最大宽度，则使用内容宽度；否则使用最大宽度
       const newWidth = Math.max(minWidth, Math.min(maxWidth, measuredWidth + 20)); // 加上padding
       setWidth(newWidth);
     }
-  }, [value, placeholder, minWidth, maxWidth]);
+  }, [value, placeholder, minWidth, maxWidth, useCellWidth]);
 
   // 自动聚焦
   React.useEffect(() => {
@@ -135,18 +138,20 @@ const AutoExpandInput: React.FC<AutoExpandInputProps> = ({
   }, [autoFocus, inputRef]);
 
   return (
-    <div className="auto-expand-input-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-      <span
-        ref={measureRef}
-        style={{
-          position: 'absolute',
-          visibility: 'hidden',
-          whiteSpace: 'pre',
-          fontSize: '13px',
-          padding: '6px 8px',
-          fontFamily: 'inherit',
-        }}
-      />
+    <div className="auto-expand-input-wrapper" style={{ position: 'relative', display: useCellWidth ? 'block' : 'inline-block', width: useCellWidth ? '100%' : 'auto' }}>
+      {!useCellWidth && (
+        <span
+          ref={measureRef}
+          style={{
+            position: 'absolute',
+            visibility: 'hidden',
+            whiteSpace: 'pre',
+            fontSize: '13px',
+            padding: '6px 8px',
+            fontFamily: 'inherit',
+          }}
+        />
+      )}
       <input
         ref={inputRef}
         type={type}
@@ -157,9 +162,9 @@ const AutoExpandInput: React.FC<AutoExpandInputProps> = ({
         onBlur={onBlur}
         placeholder={placeholder}
         style={{
-          width: `${width}px`,
-          minWidth: `${minWidth}px`,
-          maxWidth: `${maxWidth}px`,
+          width: useCellWidth ? '100%' : `${width}px`,
+          minWidth: useCellWidth ? '0' : `${minWidth}px`,
+          maxWidth: useCellWidth ? 'none' : `${maxWidth}px`,
         }}
       />
     </div>
@@ -372,6 +377,9 @@ interface DraggableColumnHeaderProps {
   onColumnResize?: (columnId: string, size: number) => void;
   showFilter?: boolean;  // 是否显示过滤按钮
   showDragHandle?: boolean;  // 是否显示拖拽手柄
+  onHeaderClick?: (columnIndex: number) => void;  // 表头点击回调
+  columnIndex?: number;  // 列索引
+  isColumnSelected?: boolean;  // 列是否被选中
 }
 
 const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
@@ -383,6 +391,9 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   onColumnResize,
   showFilter = true,
   showDragHandle = true,
+  onHeaderClick,
+  columnIndex = 0,
+  isColumnSelected = false,
 }) => {
   const {
     attributes,
@@ -401,26 +412,35 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleHeaderClick = (e: React.MouseEvent) => {
+    // 忽略按钮点击
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.resize-handle')) {
+      return;
+    }
+    onHeaderClick?.(columnIndex);
+  };
+
   return (
     <th
       ref={setNodeRef}
       style={style}
-      className="table-header-cell"
+      className={`table-header-cell ${isColumnSelected ? 'column-selected' : ''}`}
       colSpan={column.columnDef.meta?.colSpan}
+      onClick={handleHeaderClick}
     >
       <div className="header-content">
         {showDragHandle && (
-          <button
-            className="drag-handle"
-            {...attributes}
-            {...listeners}
-            title="拖拽排序"
-          >
+        <button
+          className="drag-handle"
+          {...attributes}
+          {...listeners}
+          title="拖拽排序"
+        >
             <GripVertical size={16} />
-          </button>
+        </button>
         )}
         <div className="header-title" style={{ flex: 1, minWidth: 0 }}>
-          {children}
+        {children}
         </div>
         {showFilter && (
           <button
@@ -672,6 +692,7 @@ interface EditableCellProps {
   onSave: (value: any) => void;
   onCancel: () => void;
   columnType?: 'text' | 'number' | 'email' | 'date';
+  autoSave?: boolean;  // 是否自动保存（不显示确认/取消按钮）
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({
@@ -683,6 +704,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
   onSave,
   onCancel,
   columnType = 'text',
+  autoSave = false,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [editValue, setEditValue] = useState<string>(String(value || ''));
@@ -719,6 +741,15 @@ const EditableCell: React.FC<EditableCellProps> = ({
       }
     }
     
+    // 检查值是否真的改变了（避免不必要的更新）
+    const currentValue = value;
+    if (autoSave && finalValue === currentValue) {
+      // 值没改变，直接取消编辑
+      isSavingRef.current = false;
+      onCancel();
+      return;
+    }
+    
     onSave(finalValue);
     setTimeout(() => {
       isSavingRef.current = false;
@@ -736,11 +767,27 @@ const EditableCell: React.FC<EditableCellProps> = ({
       handleSave();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      handleCancel();
+      if (autoSave) {
+        // autoSave 模式下，Esc 直接取消编辑
+        handleCancel();
+      } else {
+        handleCancel();
+      }
     }
   };
 
   const handleBlur = (e: React.FocusEvent) => {
+    if (autoSave) {
+      // autoSave 模式下，失去焦点时直接保存
+      // 使用 requestAnimationFrame 确保在下一帧执行，避免闪动
+      if (!isSavingRef.current) {
+        requestAnimationFrame(() => {
+          handleSave();
+        });
+      }
+      return;
+    }
+
     // 如果焦点移动到保存/取消按钮，不触发保存
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (relatedTarget && (
@@ -772,33 +819,36 @@ const EditableCell: React.FC<EditableCellProps> = ({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           autoFocus={isEditing}
+          useCellWidth={true}
         />
-        <div className="editable-cell-actions">
-          <button
-            className="editable-cell-save"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleSave();
-            }}
-            onMouseDown={(e) => e.preventDefault()}
-            title="保存 (Enter)"
-          >
-            <Check size={14} />
-          </button>
-          <button
-            className="editable-cell-cancel"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleCancel();
-            }}
-            onMouseDown={(e) => e.preventDefault()}
-            title="取消 (Esc)"
-          >
-            <XIcon size={14} />
-          </button>
-        </div>
+        {!autoSave && (
+          <div className="editable-cell-actions">
+            <button
+              className="editable-cell-save"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave();
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              title="保存 (Enter)"
+            >
+              <Check size={14} />
+            </button>
+            <button
+              className="editable-cell-cancel"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCancel();
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              title="取消 (Esc)"
+            >
+              <XIcon size={14} />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -807,7 +857,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     <div
       className="editable-cell-display"
       onDoubleClick={onStartEdit}
-      title="双击编辑"
+      title={autoSave ? "单击编辑" : "双击编辑"}
     >
       {value !== null && value !== undefined ? String(value) : ''}
     </div>
@@ -1045,6 +1095,19 @@ export interface SelectionRangeInfo {
   cells: SelectedCellInfo[];
 }
 
+// 工具栏按钮配置
+export interface ToolbarButton {
+  key: string;
+  label: React.ReactNode;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  disabled?: boolean;
+  title?: string;
+}
+
+// 编辑触发模式
+export type EditTriggerMode = 'click' | 'doubleClick';
+
 // 主表格组件
 export interface AdvancedTableProps<T extends Record<string, any>> {
   data: T[];
@@ -1054,6 +1117,8 @@ export interface AdvancedTableProps<T extends Record<string, any>> {
   onSelectionChange?: (selection: SelectionRangeInfo | null) => void;  // 选择变化回调
   enableFiltering?: boolean;
   enableEditing?: boolean;
+  editTriggerMode?: EditTriggerMode;  // 编辑触发模式：'click' 单击直接编辑，'doubleClick' 双击编辑（默认）
+  autoSave?: boolean;  // 是否自动保存（失焦直接保存，不显示确认按钮），默认 false
   enablePaste?: boolean;  // 是否启用粘贴功能，默认 true
   enableZebraStripes?: boolean;
   enableCrossHighlight?: boolean;
@@ -1063,6 +1128,7 @@ export interface AdvancedTableProps<T extends Record<string, any>> {
   enableExport?: boolean;
   exportFilename?: string;
   enableColumnReorder?: boolean; // 是否启用列设置中的排序功能，默认 false
+  toolbarButtons?: ToolbarButton[];  // 工具栏扩展按钮
   // 分页相关
   enablePagination?: boolean;  // 是否启用分页，默认 false
   pagination?: PaginationConfig;
@@ -1080,6 +1146,8 @@ export function AdvancedTable<T extends Record<string, any>>({
   onSelectionChange,
   enableFiltering = true,
   enableEditing = true,
+  editTriggerMode = 'doubleClick',
+  autoSave = false,
   enablePaste = true,
   enableZebraStripes = true,
   enableCrossHighlight = true,
@@ -1089,6 +1157,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   enableExport = true,
   exportFilename = '表格数据',
   enableColumnReorder = false,
+  toolbarButtons = [],
   enablePagination = false,
   pagination,
   onPageChange,
@@ -1365,7 +1434,7 @@ export function AdvancedTable<T extends Record<string, any>>({
       // 获取当前可见列顺序（从第一行的可见单元格获取）
       const rows = table.getRowModel().rows;
       if (rows.length === 0) return;
-      
+
       const visibleCells = rows[0].getVisibleCells();
       const visibleColumnIds = visibleCells.map((cell) => cell.column.id);
 
@@ -1400,7 +1469,7 @@ export function AdvancedTable<T extends Record<string, any>>({
           pastedRow.forEach((cellValue, colOffset) => {
             // 使用列索引直接定位目标列
             const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-            if (targetColumnId) {
+              if (targetColumnId) {
               const oldValue = (oldRow as any)[targetColumnId];
               (updatedRow as any)[targetColumnId] = cellValue;
               // 记录变更
@@ -1422,7 +1491,7 @@ export function AdvancedTable<T extends Record<string, any>>({
           const newRowIndex = newData.length;
           pastedRow.forEach((cellValue, colOffset) => {
             const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-            if (targetColumnId) {
+              if (targetColumnId) {
               (newRow as any)[targetColumnId] = cellValue;
               // 记录变更（新行的 oldValue 为 undefined）
               changes.push({
@@ -1496,6 +1565,7 @@ export function AdvancedTable<T extends Record<string, any>>({
     // 忽略右键
     if (e.button !== 0) return;
     
+    // 进入选择模式
     setSelectedCell({ rowIndex, columnId, columnIndex });
     setSelectionRange({
       start: { rowIndex, columnIndex },
@@ -1641,7 +1711,7 @@ export function AdvancedTable<T extends Record<string, any>>({
         // 获取当前可见列顺序（从第一行的可见单元格获取）
         const rows = table.getRowModel().rows;
         if (rows.length === 0) return;
-        
+
         const visibleCells = rows[0].getVisibleCells();
         const visibleColumnIds = visibleCells.map((cell) => cell.column.id);
 
@@ -1675,7 +1745,7 @@ export function AdvancedTable<T extends Record<string, any>>({
             pastedRow.forEach((cellValue, colOffset) => {
               // 使用列索引直接定位目标列
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
+                if (targetColumnId) {
                 (updatedRow as any)[targetColumnId] = cellValue;
               }
             });
@@ -1686,14 +1756,14 @@ export function AdvancedTable<T extends Record<string, any>>({
             const newRow = templateRow ? { ...templateRow } : ({} as T);
             pastedRow.forEach((cellValue, colOffset) => {
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
+                if (targetColumnId) {
                 (newRow as any)[targetColumnId] = cellValue;
-              }
-            });
+                }
+              });
             newData.push(newRow);
-          }
-        });
-        
+            }
+          });
+          
         // 更新状态
         setTableData(newData);
       }
@@ -1895,64 +1965,85 @@ export function AdvancedTable<T extends Record<string, any>>({
   return (
     <div className="advanced-table-container">
       <div className="table-toolbar">
-        {enableExport && (
-          <div className="export-dropdown" ref={exportButtonRef}>
+        {/* 左侧区域：扩展按钮 */}
+        <div className="toolbar-left">
+          {toolbarButtons.map((btn) => (
             <button
-              className="export-button"
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              title="导出 Excel"
+              key={btn.key}
+              className="toolbar-button"
+              onClick={btn.onClick}
+              disabled={btn.disabled}
+              title={btn.title}
             >
-              <Download size={16} />
-              <span>导出</span>
+              {btn.icon}
+              {btn.label && <span>{btn.label}</span>}
             </button>
-            {showExportMenu && (
-              <div className="export-menu">
-                <button
-                  className="export-menu-item"
-                  onClick={() => {
-                    handleExport('filtered');
-                    setShowExportMenu(false);
-                  }}
-                >
-                  导出当前数据
-                  <span className="export-menu-hint">（所见即所得）</span>
-                </button>
-                {pagination && allData && (
-                  <>
-                    <button
-                      className="export-menu-item"
-                      onClick={() => {
-                        handleExport('current');
-                        setShowExportMenu(false);
-                      }}
-                    >
-                      仅导出当前页
-                      <span className="export-menu-hint">（第 {pagination.pageIndex + 1} 页）</span>
-                    </button>
-                    <button
-                      className="export-menu-item"
-                      onClick={() => {
-                        handleExport('all');
-                        setShowExportMenu(false);
-                      }}
-                    >
-                      导出全部数据
-                      <span className="export-menu-hint">（共 {allData.length} 条）</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          ))}
+        </div>
+
+        {/* 右侧区域：导出和列设置 */}
+        <div className="toolbar-right">
+          {enableExport && (
+            <div className="export-dropdown" ref={exportButtonRef}>
+              <button
+                className="export-button"
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                title="导出 Excel"
+              >
+                <Download size={16} />
+                <span>导出</span>
+              </button>
+              {showExportMenu && (
+                <div className="export-menu">
+                  <button
+                    className="export-menu-item"
+                    onClick={() => {
+                      handleExport('filtered');
+                      setShowExportMenu(false);
+                    }}
+                  >
+                    导出当前数据
+                    <span className="export-menu-hint">（所见即所得）</span>
+                  </button>
+                  {pagination && allData && (
+                    <>
+                      <button
+                        className="export-menu-item"
+                        onClick={() => {
+                          handleExport('current');
+                          setShowExportMenu(false);
+                        }}
+                      >
+                        仅导出当前页
+                        <span className="export-menu-hint">（第 {pagination.pageIndex + 1} 页）</span>
+                      </button>
+                      <button
+                        className="export-menu-item"
+                        onClick={() => {
+                          handleExport('all');
+                          setShowExportMenu(false);
+                        }}
+                      >
+                        导出全部数据
+                        <span className="export-menu-hint">（共 {allData.length} 条）</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {enableColumnReorder && (
         <button
           className="column-settings-button"
           onClick={() => setShowColumnModal(true)}
           title="列设置"
         >
-          <Settings size={16} />
-          <span>列设置</span>
+              <Settings size={16} />
+              <span>列设置</span>
         </button>
+          )}
+        </div>
       </div>
 
       <DndContext
@@ -1973,9 +2064,9 @@ export function AdvancedTable<T extends Record<string, any>>({
                       const columnId = header.column.id;
                       const hasFilters = columnFilters[columnId] && columnFilters[columnId].length > 0;
                       return (
-                        <DraggableColumnHeader
-                          key={header.id}
-                          column={header.column}
+                      <DraggableColumnHeader
+                        key={header.id}
+                        column={header.column}
                           hasFilters={hasFilters || false}
                           showFilter={enableFiltering}
                           showDragHandle={enableColumnReorder}
@@ -1990,14 +2081,14 @@ export function AdvancedTable<T extends Record<string, any>>({
                             }
                           }}
                           onColumnResize={handleColumnResize}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </DraggableColumnHeader>
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </DraggableColumnHeader>
                       );
                     })}
                   </SortableContext>
@@ -2019,10 +2110,10 @@ export function AdvancedTable<T extends Record<string, any>>({
                     }}
                   >
                     {row.getVisibleCells().map((cell, columnIndex) => {
-                      const columnId = cell.column.id;
-                      const isSelected =
-                        selectedCell?.rowIndex === rowIndex &&
-                        selectedCell?.columnId === columnId;
+                    const columnId = cell.column.id;
+                    const isSelected =
+                      selectedCell?.rowIndex === rowIndex &&
+                      selectedCell?.columnId === columnId;
                       const isInRange = isCellInSelectionRange(rowIndex, columnIndex);
                       const isEditing =
                         editingCell?.rowIndex === rowIndex &&
@@ -2045,14 +2136,14 @@ export function AdvancedTable<T extends Record<string, any>>({
                       if (isCellHovered) cellBgColor = '#bae7ff'; // 交叉点更深的颜色
                       if (isInRange) cellBgColor = '#e6f7ff'; // 选中范围背景色
 
-                      return (
-                        <td
-                          key={cell.id}
+                    return (
+                      <td
+                        key={cell.id}
                           className={`table-cell ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isEditing ? 'editing' : ''} ${isColumnHovered ? 'column-highlighted' : ''} ${isCellHovered ? 'cross-highlighted' : ''}`}
-                          style={{
-                            width: cell.column.getSize(),
-                            minWidth: cell.column.columnDef.minSize,
-                            maxWidth: cell.column.columnDef.maxSize,
+                        style={{
+                          width: cell.column.getSize(),
+                          minWidth: cell.column.columnDef.minSize,
+                          maxWidth: cell.column.columnDef.maxSize,
                             ...(enableCrossHighlight && (isRowHovered || isColumnHovered) ? { backgroundColor: cellBgColor } : {}),
                             ...(isInRange ? { backgroundColor: cellBgColor } : {}),
                             ...(isSelected ? { 
@@ -2060,13 +2151,38 @@ export function AdvancedTable<T extends Record<string, any>>({
                               boxShadow: `inset 0 0 0 2px ${selectedBorderColor}`,
                             } as React.CSSProperties : {}),
                           }}
+                          onClick={(e) => {
+                            // click 模式下，如果只是单击（没有拖拽），则进入编辑
+                            if (!isEditing && enableEditing && editTriggerMode === 'click') {
+                              // 检查是否只是单击（selectionRange 的 start 和 end 相同，且与当前单元格一致）
+                              const isSingleClick = selectionRange && 
+                                selectionRange.start.rowIndex === selectionRange.end.rowIndex &&
+                                selectionRange.start.columnIndex === selectionRange.end.columnIndex &&
+                                selectionRange.start.rowIndex === rowIndex &&
+                                selectionRange.start.columnIndex === columnIndex;
+                              
+                              if (isSingleClick) {
+                                const visibleCells = table.getRowModel().rows[0]?.getVisibleCells();
+                                const column = visibleCells?.[columnIndex]?.column;
+                                if (column && column.columnDef.meta?.editable !== false) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleStartEdit(rowIndex, columnId);
+                                  return;
+                                }
+                              }
+                            }
+                          }}
                           onMouseDown={(e) => {
                             if (!isEditing) {
+                              // 无论什么模式，都启动多选功能
                               handleCellMouseDown(rowIndex, columnId, columnIndex, e);
                             }
                           }}
                           onMouseEnter={() => {
-                            handleCellMouseEnter(rowIndex, columnIndex);
+                            if (!isEditing) {
+                              handleCellMouseEnter(rowIndex, columnIndex);
+                            }
                           }}
                           onMouseLeave={() => {
                             if (enableCrossHighlight && !isSelecting) {
@@ -2084,8 +2200,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                               handleCellKeyDown(e, rowIndex, columnId);
                             }
                           }}
-                          tabIndex={0}
-                        >
+                        tabIndex={0}
+                      >
                           {/* 编辑条件：全局开启 + 列级别未禁用（editable 默认 true，显式设为 false 才禁用） */}
                           {enableEditing && columnDef.meta?.editable !== false ? (
                             <EditableCell
@@ -2097,17 +2213,18 @@ export function AdvancedTable<T extends Record<string, any>>({
                               onSave={(value) => handleSaveEdit(rowIndex, columnId, value)}
                               onCancel={handleCancelEdit}
                               columnType={columnType}
+                              autoSave={autoSave}
                             />
                           ) : (
                             flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
+                          cell.column.columnDef.cell,
+                          cell.getContext()
                             )
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
                 );
               })}
             </tbody>

@@ -222,15 +222,17 @@ function App() {
           enableFiltering={false}
           enableEditing={true}
           enablePaste={true}
-          enableExport={true}
+          enableExport={false}
           enableColumnReorder={true}
+          editTriggerMode="click"
           exportFilename="员工数据"
+          autoSave={true}
           // 分页配置
           enablePagination={true}
           pagination={{
             pageIndex,
             pageSize,
-            totalCount: initialData.length,  // 实际使用时从接口获取总数
+            totalCount: data.length,  // 使用当前数据的实际长度
           }}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
