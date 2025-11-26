@@ -1,0 +1,126 @@
+.print-designer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background: #f0f0f0;
+}
+
+.print-toolbar {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar-section {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-section label {
+  font-size: 14px;
+  color: #595959;
+}
+
+.toolbar-section select {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.toolbar-section select:hover {
+  border-color: #40a9ff;
+}
+
+.toolbar-section select:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.toolbar-section button {
+  padding: 6px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toolbar-section button:hover {
+  background: #40a9ff;
+}
+
+.toolbar-section button.print-button {
+  background: #52c41a;
+}
+
+.toolbar-section button.print-button:hover {
+  background: #73d13d;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 20px;
+}
+
+.canvas-wrapper canvas {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.print-properties {
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  padding: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.print-properties h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #262626;
+}
+
+.binding-help {
+  font-size: 14px;
+  color: #595959;
+}
+
+.binding-help p {
+  margin: 8px 0;
+}
+
+.binding-help ul {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.binding-help li {
+  margin: 4px 0;
+}
+
+.binding-help code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: #d93025;
+}
+

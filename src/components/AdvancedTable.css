@@ -8,49 +8,73 @@
   overflow: hidden;
 }
 
+/* 工具栏 */
 .table-toolbar {
-  padding: 12px 16px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 20px;
+  background: linear-gradient(to bottom, #fafafa, #f5f5f5);
+  border-bottom: 1px solid #e8e8e8;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  min-height: 56px;
 }
 
 .toolbar-left {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .toolbar-right {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0;
 }
 
+/* 工具栏按钮基础样式 */
 .toolbar-button {
-  padding: 6px 12px;
-  background: #1890ff;
-  color: white;
-  border: none;
+  padding: 7px 16px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
-  display: flex;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .toolbar-button:hover:not(:disabled) {
-  background: #40a9ff;
+  color: #1890ff;
+  border-color: #1890ff;
+  background: #f0f7ff;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.toolbar-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(24, 144, 255, 0.1);
 }
 
 .toolbar-button:disabled {
-  background: #d9d9d9;
+  background: #f5f5f5;
+  color: rgba(0, 0, 0, 0.25);
+  border-color: #d9d9d9;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.toolbar-button svg {
+  flex-shrink: 0;
 }
 
 /* 导出按钮样式 */
@@ -59,21 +83,37 @@
 }
 
 .export-button {
-  padding: 6px 12px;
-  background: #52c41a;
-  color: white;
-  border: none;
+  padding: 7px 16px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
-  display: flex;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .export-button:hover {
-  background: #73d13d;
+  color: #52c41a;
+  border-color: #52c41a;
+  background: #f6ffed;
+  box-shadow: 0 2px 4px rgba(82, 196, 26, 0.15);
+  transform: translateY(-1px);
+}
+
+.export-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(82, 196, 26, 0.1);
+}
+
+.export-button svg {
+  flex-shrink: 0;
 }
 
 .export-menu {
@@ -119,21 +159,37 @@
 }
 
 .column-settings-button {
-  padding: 6px 12px;
-  background: #1890ff;
-  color: white;
-  border: none;
+  padding: 7px 16px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
-  display: flex;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .column-settings-button:hover {
-  background: #40a9ff;
+  color: #1890ff;
+  border-color: #1890ff;
+  background: #f0f7ff;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.column-settings-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(24, 144, 255, 0.1);
+}
+
+.column-settings-button svg {
+  flex-shrink: 0;
 }
 
 .table-wrapper {

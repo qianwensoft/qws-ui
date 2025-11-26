@@ -1,8 +1,18 @@
-# 高级表格组件 (Advanced Table Component)
+# QWS Platform V2
 
-基于 `@tanstack/react-table` 和 `@dnd-kit` 实现的功能丰富的高级表格组件。
+基于 React + TypeScript 的企业级数据管理平台，包含高级表格组件和打印设计器。
 
-## ✨ 主要特性
+## 📦 组件列表
+
+### 1. 高级表格组件 (AdvancedTable)
+基于 `@tanstack/react-table` 和 `@dnd-kit` 实现的功能丰富的表格组件。
+
+### 2. 打印设计器 (PrintDesigner)
+基于 `fabric.js` 实现的可视化打印模板设计器。
+
+---
+
+## ✨ 高级表格 - 主要特性
 
 ### 📝 数据编辑
 - **单击编辑模式**：单击单元格直接进入编辑
@@ -377,6 +387,98 @@ yarn build-storybook
 # 或
 npm run build-storybook
 ```
+
+---
+
+## 🖨️ 打印设计器组件
+
+### 功能特性
+
+1. **纸张尺寸支持**
+   - 预设尺寸：A4、A5、B5、Letter
+   - 自定义尺寸
+   - 纵向/横向切换
+
+2. **数据绑定**
+   - 支持 `{{fieldName}}` 语法绑定数据
+   - 支持计算公式：`{{qty}}*100+"元"`
+   - 支持字段拼接：`{{price}}+"/"+"{{unit}}"`
+
+3. **可视化设计**
+   - 拖拽调整元素位置
+   - 调整元素大小
+   - 文本样式设置（字体、大小、颜色等）
+
+### 使用示例
+
+```tsx
+import { PrintDesigner, type PrintTemplate } from './components/PrintDesigner';
+
+const template: PrintTemplate = {
+  name: '产品标签',
+  paper: { size: 'A4', orientation: 'portrait' },
+  elements: [
+    {
+      id: 'title',
+      type: 'text',
+      left: 20,
+      top: 20,
+      binding: '{{productName}}',
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    {
+      id: 'price',
+      type: 'text',
+      left: 20,
+      top: 50,
+      binding: '{{price}}+"元"',
+      fontSize: 16,
+    },
+  ],
+};
+
+const data = {
+  productName: '苹果手机',
+  price: 5999,
+  qty: 100,
+};
+
+function App() {
+  return (
+    <PrintDesigner
+      template={template}
+      data={data}
+      onTemplateChange={(newTemplate) => {
+        console.log('模板已更新:', newTemplate);
+      }}
+      readOnly={false}
+      showToolbar={true}
+    />
+  );
+}
+```
+
+### 数据绑定语法
+
+| 语法 | 示例 | 说明 |
+|------|------|------|
+| 简单绑定 | `{{productName}}` | 直接显示字段值 |
+| 计算 | `{{qty}}*100` | 数值计算 |
+| 拼接 | `{{price}}+"元"` | 字符串拼接 |
+| 组合 | `{{qty}}*100+"元/件"` | 计算后拼接 |
+
+### Props
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `template` | `PrintTemplate` | - | 打印模板 |
+| `data` | `Record<string, any>` | `{}` | 数据源 |
+| `onTemplateChange` | `(template: PrintTemplate) => void` | - | 模板变更回调 |
+| `readOnly` | `boolean` | `false` | 只读模式 |
+| `showToolbar` | `boolean` | `true` | 显示工具栏 |
+
+---
 
 ## 📄 License
 
