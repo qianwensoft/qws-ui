@@ -241,8 +241,7 @@ export const Basic: Story = {
 
     return (
       <Suspense fallback={<Loading />}>
-        <Suspense fallback={<Loading />}>
-        <PrintDesignerLazyLazy
+        <PrintDesignerLazy
           template={template}
           data={productData}
           onTemplateChange={(newTemplate) => {
@@ -252,7 +251,6 @@ export const Basic: Story = {
           readOnly={false}
           showToolbar={true}
         />
-      </Suspense>
       </Suspense>
     );
   },
