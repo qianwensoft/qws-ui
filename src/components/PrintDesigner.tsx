@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 import './PrintDesigner.css';
 
 // 纸张尺寸定义（单位：mm）
