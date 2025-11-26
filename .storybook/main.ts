@@ -19,13 +19,9 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return {
       ...config,
-      define: {
-        ...config.define,
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      },
       optimizeDeps: {
         ...config.optimizeDeps,
-        include: [...(config.optimizeDeps?.include || []), 'fabric', 'react', 'react-dom'],
+        include: [...(config.optimizeDeps?.include || []), 'fabric'],
       },
       resolve: {
         ...config.resolve,
