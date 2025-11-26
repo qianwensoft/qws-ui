@@ -1,0 +1,168 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Introduction" />
+
+# 高级表格组件 (AdvancedTable)
+
+欢迎使用高级表格组件！这是一个功能强大、易于使用的 React 表格组件。
+
+## ✨ 主要特性
+
+### 📝 数据编辑
+- **单击编辑模式**：单击单元格直接进入编辑
+- **双击编辑模式**：双击进入编辑，显示确认/取消按钮
+- **自动保存**：失焦自动保存（可选）
+- **列级编辑控制**：可单独禁用某些列的编辑功能
+
+### 📋 Excel 粘贴
+- 支持从 Excel、Google Sheets 等复制多行多列数据
+- 按所见即所得的顺序填充（先横向后纵向）
+- 自动创建新行（当粘贴数据超出现有行数时）
+- 实时变更追踪和回调
+
+### 🔍 列过滤
+- 12 种过滤操作符：
+  - 等于 / 不等于
+  - 大于 / 小于 / 大于等于 / 小于等于
+  - 包含 / 不包含
+  - 开头是 / 结尾是
+  - 为空 / 非空
+- 支持多条件过滤（AND 逻辑）
+- 客户端过滤或服务端过滤（通过回调实现）
+
+### 📊 导出功能
+- 导出到 Excel（.xlsx 格式）
+- 三种导出范围：
+  - 当前页数据
+  - 过滤后的数据
+  - 全部原始数据
+- 保留表格样式（表头、斑马纹、边框等）
+
+### 🎯 列管理
+- **拖拽排序**：拖动列头左侧图标调整列顺序
+- **调整宽度**：拖动列头右侧边界线
+- **显示/隐藏**：通过列设置弹窗控制
+- **列顺序持久化**：可保存列配置
+
+### 📄 分页功能
+- 页码导航（首页、上一页、下一页、末页）
+- 每页条数选择
+- 快速跳转到指定页
+- 自定义每页条数选项
+
+### 🎨 视觉效果
+- 斑马纹行（可自定义颜色）
+- 交叉高亮（行列交叉点突出显示）
+- 多选单元格（拖拽选择）
+- 可自定义选中边框颜色
+
+### 🔧 其他特性
+- TypeScript 完整类型支持
+- 响应式设计
+- 键盘快捷键支持
+- 无障碍访问（A11y）
+- 详细的数据变更回调
+
+## 📦 技术栈
+
+- **React 18+**
+- **@tanstack/react-table**：强大的表格状态管理
+- **@dnd-kit**：拖拽功能
+- **ExcelJS**：Excel 导出
+- **lucide-react**：图标库
+- **TypeScript**：类型安全
+
+## 🚀 快速开始
+
+```tsx
+import { AdvancedTable } from './components/AdvancedTable';
+import type { ColumnDef } from '@tanstack/react-table';
+
+interface Person {
+  name: string;
+  age: number;
+  email: string;
+}
+
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', accessorKey: 'name', header: '姓名' },
+  { id: 'age', accessorKey: 'age', header: '年龄' },
+  { id: 'email', accessorKey: 'email', header: '邮箱' },
+];
+
+const data: Person[] = [
+  { name: '张三', age: 28, email: 'zhangsan@example.com' },
+  { name: '李四', age: 32, email: 'lisi@example.com' },
+];
+
+function App() {
+  return (
+    <AdvancedTable
+      data={data}
+      columns={columns}
+      enableEditing={true}
+      enablePaste={true}
+      enableFiltering={true}
+      enableExport={true}
+    />
+  );
+}
+```
+
+## 📚 示例导航
+
+浏览左侧菜单查看各种使用示例：
+
+1. **Basic** - 基础表格
+2. **Edit Mode** - 单击编辑模式
+3. **Double Click Edit** - 双击编辑模式
+4. **Excel Paste** - Excel 粘贴功能
+5. **Filtering** - 列过滤功能
+6. **Pagination** - 分页功能
+7. **Column Management** - 列管理功能
+8. **Custom Styling** - 自定义样式
+9. **Full Featured** - 完整功能示例
+10. **Large Dataset** - 大数据集示例
+
+## 🎯 最佳实践
+
+### 性能优化
+- 对于大数据集（>1000 行），建议启用分页
+- 使用 `React.memo` 包裹表格组件
+- 服务端过滤和分页可进一步提升性能
+
+### 数据管理
+- 使用 `onDataChange` 回调实时同步数据到后端
+- `changeInfo` 参数包含详细的变更信息
+- 支持批量更新（粘贴多个单元格）
+
+### 用户体验
+- 单击编辑 + 自动保存：适合快速数据录入场景
+- 双击编辑 + 确认按钮：适合需要谨慎确认的场景
+- 启用斑马纹和交叉高亮可提升可读性
+
+## 🐛 故障排除
+
+### 粘贴不生效
+- 确保 `enablePaste={true}`
+- 检查是否点击了单元格（单元格需要获得焦点）
+- 查看控制台是否有错误信息
+
+### 编辑不生效
+- 确保 `enableEditing={true}`
+- 检查列的 `meta.editable` 是否设为 `false`
+- 验证 `onDataChange` 回调是否正确更新状态
+
+### 过滤不生效
+- 确保 `enableFiltering={true}`
+- 客户端过滤会自动生效
+- 服务端过滤需要实现 `onFilterChange` 回调
+
+## 📄 License
+
+MIT License
+
+---
+
+**开始探索示例吧！** 👉 查看左侧菜单中的各个示例
+

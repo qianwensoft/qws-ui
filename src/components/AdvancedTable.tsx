@@ -56,7 +56,8 @@ export interface ColumnFilters {
 }
 
 // 过滤回调函数类型（用于接口调用）
-export type OnFilterChange<T> = (columnId: string, filters: FilterCondition[], allFilters: ColumnFilters) => void | Promise<void>;
+// _T 保留用于类型一致性（前缀 _ 表示有意未使用）
+export type OnFilterChange<_T = any> = (columnId: string, filters: FilterCondition[], allFilters: ColumnFilters) => void | Promise<void>;
 
 // 操作符选项
 const operatorOptions: { value: FilterOperator; label: string }[] = [
@@ -182,7 +183,6 @@ interface FilterPanelProps {
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
-  columnId,
   columnHeader,
   filters,
   onFiltersChange,
@@ -697,8 +697,6 @@ interface EditableCellProps {
 
 const EditableCell: React.FC<EditableCellProps> = ({
   value,
-  rowIndex,
-  columnId,
   isEditing,
   onStartEdit,
   onSave,
@@ -1113,7 +1111,7 @@ export interface AdvancedTableProps<T extends Record<string, any>> {
   data: T[];
   columns: ColumnDef<T>[];
   onDataChange?: (data: T[], changeInfo?: DataChangeInfo<T>) => void;
-  onFilterChange?: OnFilterChange<T>;
+  onFilterChange?: OnFilterChange;
   onSelectionChange?: (selection: SelectionRangeInfo | null) => void;  // 选择变化回调
   enableFiltering?: boolean;
   enableEditing?: boolean;
@@ -1673,11 +1671,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   };
 
   // 处理单元格键盘事件
-  const handleCellKeyDown = (
-    e: React.KeyboardEvent,
-    rowIndex: number,
-    columnId: string
-  ) => {
+  const handleCellKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
       // 粘贴事件会在 onPaste 中处理
       return;
@@ -1728,6 +1722,10 @@ export function AdvancedTable<T extends Record<string, any>>({
           }
         });
 
+        // 收集变更信息
+        const changes: DataChangeItem<T>[] = [];
+        const affectedRowIndices: Set<number> = new Set();
+
         // 复制当前数据进行修改
         const newData = [...tableData];
         
@@ -1741,31 +1739,67 @@ export function AdvancedTable<T extends Record<string, any>>({
           
           if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
             // 更新现有行：按可见列顺序横向填充
-            const updatedRow = { ...newData[targetDataIndex] };
+            const oldRow = newData[targetDataIndex];
+            const updatedRow = { ...oldRow };
             pastedRow.forEach((cellValue, colOffset) => {
               // 使用列索引直接定位目标列
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-                if (targetColumnId) {
+              if (targetColumnId) {
+                const oldValue = (oldRow as any)[targetColumnId];
                 (updatedRow as any)[targetColumnId] = cellValue;
+                // 记录变更
+                changes.push({
+                  rowIndex: targetDataIndex,
+                  columnId: targetColumnId,
+                  oldValue,
+                  newValue: cellValue,
+                  rowData: updatedRow,
+                });
               }
             });
             newData[targetDataIndex] = updatedRow;
+            affectedRowIndices.add(targetDataIndex);
           } else if (targetDisplayRowIndex >= displayData.length) {
             // 如果超出显示范围，在数据末尾创建新行
             const templateRow = newData[newData.length - 1];
             const newRow = templateRow ? { ...templateRow } : ({} as T);
+            const newRowIndex = newData.length;
             pastedRow.forEach((cellValue, colOffset) => {
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-                if (targetColumnId) {
+              if (targetColumnId) {
                 (newRow as any)[targetColumnId] = cellValue;
-                }
-              });
+                // 记录变更（新行的 oldValue 为 undefined）
+                changes.push({
+                  rowIndex: newRowIndex,
+                  columnId: targetColumnId,
+                  oldValue: undefined,
+                  newValue: cellValue,
+                  rowData: newRow,
+                });
+              }
+            });
             newData.push(newRow);
-            }
-          });
+            affectedRowIndices.add(newRowIndex);
+          }
+        });
           
         // 更新状态
         setTableData(newData);
+
+        // 构建变更信息并回调（在状态更新后）
+        if (onDataChange && changes.length > 0) {
+          const affectedIndices = Array.from(affectedRowIndices).sort((a, b) => a - b);
+          const changeInfo: DataChangeInfo<T> = {
+            type: 'paste',
+            changes,
+            affectedRows: affectedIndices.map((idx) => newData[idx]),
+            affectedRowIndices: affectedIndices,
+          };
+          // 使用 setTimeout 确保状态更新完成后再回调
+          setTimeout(() => {
+            onDataChange(newData, changeInfo);
+          }, 0);
+        }
       }
     };
 
@@ -1773,7 +1807,7 @@ export function AdvancedTable<T extends Record<string, any>>({
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [selectedCell, table, displayData, tableData, enablePaste]);
+  }, [selectedCell, table, displayData, tableData, enablePaste, onDataChange]);
 
   // 切换列显示/隐藏
   const toggleColumn = (columnId: string) => {
@@ -2197,7 +2231,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                           onKeyDown={(e) => {
                             if (!isEditing) {
-                              handleCellKeyDown(e, rowIndex, columnId);
+                              handleCellKeyDown(e);
                             }
                           }}
                         tabIndex={0}
