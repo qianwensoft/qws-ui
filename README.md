@@ -54,7 +54,7 @@ npm install
 
 ### 运行 Storybook（推荐）
 
-查看所有示例和文档：
+#### 方式 1：开发模式（推荐）
 
 ```bash
 yarn storybook
@@ -63,6 +63,20 @@ npm run storybook
 ```
 
 然后在浏览器中打开 http://localhost:6006
+
+> **注意**：如果遇到网络接口错误，请使用方式 2。
+
+#### 方式 2：构建静态版本
+
+```bash
+# 构建静态文件
+yarn build-storybook
+# 或
+npm run build-storybook
+
+# 使用任意静态服务器查看，例如：
+npx serve storybook-static
+```
 
 ### 运行开发环境
 
