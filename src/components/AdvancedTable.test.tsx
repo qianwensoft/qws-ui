@@ -818,6 +818,175 @@ describe('AdvancedTable 组件测试', () => {
     });
   });
 
+  describe('工具栏自定义按钮', () => {
+    it('应该显示工具栏按钮', () => {
+      const toolbarButtons = [
+        {
+          key: 'add',
+          label: '新增',
+          onClick: vi.fn(),
+        },
+        {
+          key: 'delete',
+          label: '删除',
+          onClick: vi.fn(),
+        },
+      ];
+
+      render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      expect(screen.getByText('新增')).toBeInTheDocument();
+      expect(screen.getByText('删除')).toBeInTheDocument();
+    });
+
+    it('点击工具栏按钮应该调用回调', async () => {
+      const user = userEvent.setup();
+      const handleAdd = vi.fn();
+      const toolbarButtons = [
+        {
+          key: 'add',
+          label: '新增',
+          onClick: handleAdd,
+        },
+      ];
+
+      render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      const addButton = screen.getByText('新增');
+      await user.click(addButton);
+
+      expect(handleAdd).toHaveBeenCalled();
+    });
+
+    it('应该显示工具栏按钮图标', () => {
+      const toolbarButtons = [
+        {
+          key: 'add',
+          label: '新增',
+          icon: <span data-testid="add-icon">+</span>,
+          onClick: vi.fn(),
+        },
+      ];
+
+      const { getByTestId } = render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      expect(getByTestId('add-icon')).toBeInTheDocument();
+    });
+
+    it('应该禁用工具栏按钮', () => {
+      const toolbarButtons = [
+        {
+          key: 'delete',
+          label: '删除',
+          onClick: vi.fn(),
+          disabled: true,
+        },
+      ];
+
+      const { container } = render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      const deleteButton = container.querySelector('.toolbar-button[disabled]');
+      expect(deleteButton).toBeInTheDocument();
+      expect(deleteButton).toBeDisabled();
+    });
+
+    it('应该显示工具栏按钮标题', () => {
+      const toolbarButtons = [
+        {
+          key: 'add',
+          label: '新增',
+          onClick: vi.fn(),
+          title: '添加新记录',
+        },
+      ];
+
+      render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      const addButton = screen.getByTitle('添加新记录');
+      expect(addButton).toBeInTheDocument();
+    });
+
+    it('应该支持多个工具栏按钮', () => {
+      const toolbarButtons = [
+        { key: 'add', label: '新增', onClick: vi.fn() },
+        { key: 'edit', label: '编辑', onClick: vi.fn() },
+        { key: 'delete', label: '删除', onClick: vi.fn() },
+        { key: 'refresh', label: '刷新', onClick: vi.fn() },
+      ];
+
+      const { container } = render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={toolbarButtons}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      const buttons = container.querySelectorAll('.toolbar-button');
+      expect(buttons).toHaveLength(4);
+    });
+  });
+
   describe('边界情况', () => {
     it('应该处理空数据数组', () => {
       const { container } = render(
@@ -906,6 +1075,25 @@ describe('AdvancedTable 组件测试', () => {
 
       // 特殊字符应该被正确转义
       expect(screen.getByText('<script>alert("xss")</script>')).toBeInTheDocument();
+    });
+
+    it('应该处理空工具栏按钮数组', () => {
+      const { container } = render(
+        <AdvancedTable
+          data={mockData}
+          columns={mockColumns}
+          toolbarButtons={[]}
+          enableEditing={false}
+          enableFiltering={false}
+          enablePaste={false}
+          enableExport={false}
+          enableColumnReorder={false}
+        />
+      );
+
+      const toolbar = container.querySelector('.toolbar-left');
+      expect(toolbar).toBeInTheDocument();
+      expect(toolbar?.children).toHaveLength(0);
     });
   });
 });

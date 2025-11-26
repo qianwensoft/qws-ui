@@ -42,6 +42,11 @@
 - 多选单元格（拖拽选择）
 - 可自定义选中边框颜色
 
+### 🛠️ 工具栏
+- **自定义按钮**：在工具栏左侧添加业务相关的操作按钮
+- **系统按钮**：导出和列设置固定在工具栏右侧
+- **灵活配置**：支持图标、文本、禁用状态、点击事件等
+
 ## 🚀 快速开始
 
 ### 安装依赖
@@ -100,6 +105,7 @@ npm run dev
 8. **Custom Styling** - 自定义样式
 9. **Full Featured** - 完整功能示例
 10. **Large Dataset** - 大数据集示例
+11. **Toolbar Buttons** ⭐ - 工具栏自定义按钮（新增）
 
 每个示例都有详细的说明和交互演示。
 
@@ -149,9 +155,34 @@ function App() {
 ### 完整功能配置
 
 ```tsx
+// 工具栏自定义按钮
+const toolbarButtons = [
+  {
+    key: 'add',
+    label: '新增',
+    icon: <PlusIcon />,
+    onClick: () => {
+      // 添加新记录
+      const newRecord = { /* ... */ };
+      setData([...data, newRecord]);
+    },
+  },
+  {
+    key: 'delete',
+    label: '删除',
+    icon: <TrashIcon />,
+    onClick: () => {
+      // 删除选中的记录
+    },
+    disabled: selectedRows.length === 0,
+  },
+];
+
 <AdvancedTable
   data={data}
   columns={columns}
+  // 工具栏按钮
+  toolbarButtons={toolbarButtons}
   // 数据变更回调
   onDataChange={(newData, changeInfo) => {
     console.log('变更类型:', changeInfo?.type); // 'edit' 或 'paste'
@@ -209,6 +240,70 @@ const columns: ColumnDef<Person>[] = [
 ];
 ```
 
+### 工具栏自定义按钮
+
+```tsx
+import { Plus, Trash2, RefreshCw } from 'lucide-react';
+
+const toolbarButtons = [
+  {
+    key: 'add',
+    label: '新增',
+    icon: <Plus size={16} />,
+    onClick: () => {
+      // 添加新记录
+      const newRecord = { /* ... */ };
+      setData([...data, newRecord]);
+    },
+    title: '添加新记录',
+  },
+  {
+    key: 'delete',
+    label: '删除',
+    icon: <Trash2 size={16} />,
+    onClick: () => {
+      // 删除选中的记录
+      if (confirm('确定删除？')) {
+        // 删除逻辑
+      }
+    },
+    disabled: selectedRows.length === 0,
+    title: '删除选中的记录',
+  },
+  {
+    key: 'refresh',
+    label: '刷新',
+    icon: <RefreshCw size={16} />,
+    onClick: () => {
+      // 刷新数据
+      fetchData();
+    },
+    title: '刷新数据',
+  },
+];
+
+<AdvancedTable
+  data={data}
+  columns={columns}
+  toolbarButtons={toolbarButtons}  // 添加工具栏按钮
+  enableEditing={true}
+  enableExport={true}
+  enableColumnReorder={true}
+/>
+```
+
+**ToolbarButton 接口：**
+```typescript
+interface ToolbarButton {
+  key: string;              // 唯一键
+  label: React.ReactNode;   // 按钮文本
+  onClick: () => void;      // 点击事件
+  icon?: React.ReactNode;   // 图标（可选）
+  disabled?: boolean;       // 禁用状态（可选）
+  title?: string;           // 悬停提示（可选）
+}
+```
+
 ## 📦 技术栈
 
 - **React 18+**
@@ -238,6 +333,7 @@ const columns: ColumnDef<Person>[] = [
 | `enableFiltering` | `boolean` | `true` | 启用过滤功能 |
 | `enableExport` | `boolean` | `true` | 启用导出功能 |
 | `enableColumnReorder` | `boolean` | `false` | 启用列排序功能 |
+| `toolbarButtons` | `ToolbarButton[]` | `[]` | 工具栏左侧的自定义按钮 |
 | `enablePagination` | `boolean` | `false` | 启用分页功能 |
 | `enableZebraStripes` | `boolean` | `true` | 启用斑马纹 |
 | `enableCrossHighlight` | `boolean` | `true` | 启用交叉高亮 |

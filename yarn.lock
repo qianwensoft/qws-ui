@@ -847,12 +847,55 @@
     "@storybook/global" "^5.0.0"
     "@storybook/react-dom-shim" "10.0.8"
 
+"@tanstack/devtools-event-client@^0.3.2", "@tanstack/devtools-event-client@^0.3.5":
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/@tanstack/devtools-event-client/-/devtools-event-client-0.3.5.tgz#0e1d0a047529d15abfd788a481677cd2593c2dd9"
+  integrity sha512-RL1f5ZlfZMpghrCIdzl6mLOFLTuhqmPNblZgBaeKfdtk5rfbjykurv+VfYydOFXj0vxVIoA2d/zT7xfD7Ph8fw==
+
+"@tanstack/form-core@1.26.0":
+  version "1.26.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/form-core/-/form-core-1.26.0.tgz#c69ec90a5fbe099e3f8ddf76d0d6ce64cfbe6247"
+  integrity sha512-CVSrNwnRt8V0vULOr82slIckaB7w7dOMKF+GMP9rmbaCBzXHJt+JQRj4NiH4PyPz31DAJoFE+BxcrhcVU2ZjTw==
+  dependencies:
+    "@tanstack/devtools-event-client" "^0.3.5"
+    "@tanstack/pacer" "^0.15.3"
+    "@tanstack/store" "^0.7.7"
+
+"@tanstack/pacer@^0.15.3":
+  version "0.15.4"
+  resolved "https://registry.yarnpkg.com/@tanstack/pacer/-/pacer-0.15.4.tgz#415c4837f37f90be221f0df5505e216e6342b5d6"
+  integrity sha512-vGY+CWsFZeac3dELgB6UZ4c7OacwsLb8hvL2gLS6hTgy8Fl0Bm/aLokHaeDIP+q9F9HUZTnp360z9uv78eg8pg==
+  dependencies:
+    "@tanstack/devtools-event-client" "^0.3.2"
+    "@tanstack/store" "^0.7.5"
+
+"@tanstack/react-form@^1.26.0":
+  version "1.26.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-form/-/react-form-1.26.0.tgz#98d28c8d48ce45c2892a31430722f05a3a9f0220"
+  integrity sha512-G4AvmZ0tBMkxbsWB/gAfn5hH/8GSTXDR72DqVl1IjNULAn5XFFiWr4Xq5msbwgMruFNhLKyO4hxzwvwRXyCmmw==
+  dependencies:
+    "@tanstack/form-core" "1.26.0"
+    "@tanstack/react-store" "^0.7.7"
+
+"@tanstack/react-store@^0.7.7":
+  version "0.7.7"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-store/-/react-store-0.7.7.tgz#6c51761956a1b3713ae0a8dbc008ea181f82df1f"
+  integrity sha512-qqT0ufegFRDGSof9D/VqaZgjNgp4tRPHZIJq2+QIHkMUtHjaJ0lYrrXjeIUJvjnTbgPfSD1XgOMEt0lmANn6Zg==
+  dependencies:
+    "@tanstack/store" "0.7.7"
+    use-sync-external-store "^1.5.0"
+
 "@tanstack/react-table@^8.10.7":
   version "8.21.3"
   resolved "https://registry.yarnpkg.com/@tanstack/react-table/-/react-table-8.21.3.tgz#2c38c747a5731c1a07174fda764b9c2b1fb5e91b"
   integrity sha512-5nNMTSETP4ykGegmVkhjcS8tTLW6Vl4axfEGQN3v0zdHYbK4UfoqfPChclTrJ4EoK9QynqAu9oUf8VEmrpZ5Ww==
   dependencies:
     "@tanstack/table-core" "8.21.3"
+
+"@tanstack/store@0.7.7", "@tanstack/store@^0.7.5", "@tanstack/store@^0.7.7":
+  version "0.7.7"
+  resolved "https://registry.yarnpkg.com/@tanstack/store/-/store-0.7.7.tgz#2c8b1d8c094f3614ae4e0483253239abd0e14488"
+  integrity sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==
 
 "@tanstack/table-core@8.21.3":
   version "8.21.3"
@@ -2905,6 +2948,11 @@ update-browserslist-db@^1.1.4:
   dependencies:
     escalade "^3.2.0"
     picocolors "^1.1.1"
+
+use-sync-external-store@^1.5.0:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.6.0.tgz#b174bfa65cb2b526732d9f2ac0a408027876f32d"
+  integrity sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==
 
 util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   version "1.0.2"

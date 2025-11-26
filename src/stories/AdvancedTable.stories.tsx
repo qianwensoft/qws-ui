@@ -143,6 +143,11 @@ const meta: Meta<typeof AdvancedTable> = {
 - **多选单元格**：拖拽选择多个单元格
 - **自定义颜色**：支持自定义各种颜色主题
 
+### 🛠️ 工具栏
+- **自定义按钮**：通过 \`toolbarButtons\` 参数在工具栏左侧添加自定义操作按钮
+- **系统按钮**：导出和列设置按钮固定在工具栏右侧
+- **灵活布局**：左右分区，清晰的功能划分
+
 ## 🚀 快速开始
 
 \`\`\`tsx
@@ -167,10 +172,36 @@ const data: Person[] = [
 ];
 
 function App() {
+  const [tableData, setTableData] = useState(data);
+
+  // 工具栏自定义按钮
+  const toolbarButtons = [
+    {
+      key: 'add',
+      label: '新增',
+      icon: <PlusIcon />,
+      onClick: () => {
+        // 添加新记录
+        const newRecord = { /* ... */ };
+        setTableData([...tableData, newRecord]);
+      },
+    },
+    {
+      key: 'delete',
+      label: '删除',
+      icon: <TrashIcon />,
+      onClick: () => {
+        // 删除选中的记录
+      },
+      disabled: true, // 可以根据选择状态动态设置
+    },
+  ];
+
   return (
     <AdvancedTable
-      data={data}
+      data={tableData}
       columns={columns}
+      toolbarButtons={toolbarButtons}
       enableEditing={true}
       enablePaste={true}
       enableFiltering={true}
@@ -184,11 +215,24 @@ function App() {
 
 浏览下方的示例了解各种功能的使用方法。每个示例都包含详细的说明和可交互的演示。
 
+1. **Basic** - 基础表格
+2. **Edit Mode** - 单击编辑模式
+3. **Double Click Edit** - 双击编辑模式
+4. **Excel Paste** - Excel 粘贴功能
+5. **Filtering** - 列过滤功能
+6. **Pagination** - 分页功能
+7. **Column Management** - 列管理功能
+8. **Custom Styling** - 自定义样式
+9. **Full Featured** - 完整功能示例
+10. **Large Dataset** - 大数据集示例
+11. **Toolbar Buttons** ⭐ - 工具栏自定义按钮（新）
+
 ## 🎯 最佳实践
 
 - **性能优化**：大数据集（>1000 行）建议启用分页
 - **数据管理**：使用 \`onDataChange\` 回调同步数据到后端
 - **用户体验**：根据场景选择合适的编辑模式（单击 vs 双击）
+- **工具栏扩展**：使用 \`toolbarButtons\` 添加业务相关的操作按钮
         `,
       },
     },
@@ -326,6 +370,36 @@ function App() {
       table: {
         type: { summary: 'string' },
         defaultValue: { summary: "'表格数据'" },
+      },
+    },
+    toolbarButtons: {
+      description: '工具栏左侧的自定义按钮数组。每个按钮包含 key、label、onClick、icon、disabled、title 属性',
+      control: false,
+      table: {
+        type: { summary: 'ToolbarButton[]' },
+        defaultValue: { summary: '[]' },
+      },
+    },
+    pagination: {
+      description: '分页配置对象（pageIndex、pageSize、totalCount）',
+      control: false,
+      table: {
+        type: { summary: 'PaginationConfig' },
+      },
+    },
+    pageSizeOptions: {
+      description: '每页条数选项数组',
+      control: false,
+      table: {
+        type: { summary: 'number[]' },
+        defaultValue: { summary: '[10, 20, 50, 100]' },
+      },
+    },
+    allData: {
+      description: '全部数据（用于分页时导出全部数据）',
+      control: false,
+      table: {
+        type: { summary: 'T[]' },
       },
     },
   },
@@ -866,6 +940,187 @@ export const LargeDataset: Story = {
           }}
           pageSizeOptions={[10, 20, 50, 100]}
           allData={data}
+        />
+      </div>
+    );
+  },
+};
+
+// 11. 工具栏自定义按钮
+export const ToolbarButtons: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+### 工具栏自定义按钮
+
+通过 \`toolbarButtons\` 参数在工具栏左侧添加自定义按钮。
+
+**功能特点：**
+- 支持添加多个自定义按钮
+- 按钮可以包含图标和文本
+- 支持禁用状态
+- 支持自定义点击事件
+- 按钮显示在工具栏左侧，导出和列设置在右侧
+
+**使用场景：**
+- 批量操作（删除、导入等）
+- 刷新数据
+- 添加新记录
+- 自定义业务操作
+        `,
+      },
+    },
+  },
+  render: () => {
+    const [data, setData] = useState<Person[]>(generateData(10));
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
+
+    // 工具栏自定义按钮
+    const toolbarButtons = [
+      {
+        key: 'add',
+        label: '新增',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        ),
+        onClick: () => {
+          const newPerson: Person = {
+            id: `${data.length + 1}`,
+            name: '新员工',
+            age: 25,
+            email: `new${data.length + 1}@example.com`,
+            department: '技术部',
+            salary: 15000,
+            status: '在职',
+            joinDate: new Date().toISOString().split('T')[0],
+          };
+          setData([...data, newPerson]);
+          alert('已添加新员工');
+        },
+        title: '添加新记录',
+      },
+      {
+        key: 'refresh',
+        label: '刷新',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M13.65 2.35A7.5 7.5 0 1 0 15.5 8h-2a5.5 5.5 0 1 1-1.65-3.95L10 6h5V1l-1.35 1.35z" />
+          </svg>
+        ),
+        onClick: () => {
+          setData(generateData(10));
+          alert('数据已刷新');
+        },
+        title: '刷新数据',
+      },
+      {
+        key: 'delete',
+        label: `删除 (${selectedRows.length})`,
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+          </svg>
+        ),
+        onClick: () => {
+          if (selectedRows.length === 0) {
+            alert('请先选择要删除的行');
+            return;
+          }
+          if (confirm(`确定要删除选中的 ${selectedRows.length} 条记录吗？`)) {
+            const newData = data.filter((_, index) => !selectedRows.includes(index));
+            setData(newData);
+            setSelectedRows([]);
+            alert(`已删除 ${selectedRows.length} 条记录`);
+          }
+        },
+        disabled: selectedRows.length === 0,
+        title: '删除选中的记录',
+      },
+      {
+        key: 'import',
+        label: '导入',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+          </svg>
+        ),
+        onClick: () => {
+          alert('导入功能待实现\n可以打开文件选择对话框，导入 Excel 或 CSV 文件');
+        },
+        title: '导入数据',
+      },
+    ];
+
+    const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
+      setData(newData);
+      console.log('数据变更:', changeInfo);
+    };
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>工具栏自定义按钮</h2>
+        <div style={{ 
+          background: '#fff7e6', 
+          padding: '15px', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          border: '1px solid #ffd591' 
+        }}>
+          <h3 style={{ marginTop: 0 }}>工具栏布局：</h3>
+          <p style={{ marginBottom: '10px' }}>
+            <strong>左侧：</strong>自定义按钮（通过 <code>toolbarButtons</code> 参数配置）
+          </p>
+          <p style={{ marginBottom: '10px' }}>
+            <strong>右侧：</strong>系统按钮（导出、列设置）
+          </p>
+          <h4>示例功能：</h4>
+          <ul style={{ marginBottom: 0 }}>
+            <li><strong>新增：</strong>添加一条新记录</li>
+            <li><strong>刷新：</strong>重新生成数据</li>
+            <li><strong>删除：</strong>删除选中的记录（需要先选中行）</li>
+            <li><strong>导入：</strong>导入外部数据</li>
+          </ul>
+        </div>
+        
+        <div style={{ 
+          background: '#f0f7ff', 
+          padding: '15px', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          border: '1px solid #91caff' 
+        }}>
+          <h4 style={{ marginTop: 0 }}>提示：</h4>
+          <p style={{ margin: 0 }}>
+            拖拽选择多行，然后点击"删除"按钮查看批量删除效果。
+            当前选中：<strong>{selectedRows.length}</strong> 行
+          </p>
+        </div>
+
+        <AdvancedTable
+          data={data}
+          columns={baseColumns}
+          onDataChange={handleDataChange}
+          onSelectionChange={(selection) => {
+            if (selection) {
+              const rowIndices = new Set(selection.cells.map(cell => cell.rowIndex));
+              setSelectedRows(Array.from(rowIndices).sort((a, b) => a - b));
+            } else {
+              setSelectedRows([]);
+            }
+          }}
+          toolbarButtons={toolbarButtons}
+          enableEditing={true}
+          editTriggerMode="click"
+          autoSave={true}
+          enablePaste={true}
+          enableFiltering={true}
+          enableExport={true}
+          enableColumnReorder={true}
         />
       </div>
     );
