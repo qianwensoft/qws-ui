@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { Type, Image, Barcode, QrCode, Minus, Square, Table, ZoomIn, ZoomOut, Ruler } from 'lucide-react';
+import { Type, Image, Barcode, QrCode, Minus, Square, Table, ZoomIn, ZoomOut, Ruler as RulerIcon } from 'lucide-react';
 import './PrintDesigner.css';
 
 // 纸张尺寸定义（单位：mm）
@@ -954,7 +954,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
                 onClick={() => setShowRuler(!showRuler)}
                 title="标尺"
               >
-                <Ruler size={16} />
+                <RulerIcon size={16} />
               </button>
               <button
                 className={showGuides ? 'active' : ''}
