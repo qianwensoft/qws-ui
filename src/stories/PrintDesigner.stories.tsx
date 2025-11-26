@@ -441,3 +441,121 @@ export const MultipleDataSources: Story = {
   },
 };
 
+
+// 循环表格示例数据（增加数据量以展示分页效果）
+const tableData = {
+  customerName: '张三',
+  orderNo: 'ORD202411260001',
+  orderDate: '2024-11-26',
+  items: [
+    { name: 'iPhone 15 Pro 256GB 深空黑色', qty: 2, price: 7999, amount: 15998 },
+    { name: 'MacBook Pro 14英寸 M3 Pro芯片', qty: 1, price: 14999, amount: 14999 },
+    { name: 'AirPods Pro 2代 主动降噪', qty: 3, price: 1899, amount: 5697 },
+    { name: 'Apple Watch Series 9 GPS 45mm', qty: 1, price: 2999, amount: 2999 },
+    { name: 'iPad Air 第五代 256GB WLAN', qty: 2, price: 4799, amount: 9598 },
+    { name: 'Magic Keyboard 妙控键盘', qty: 2, price: 1099, amount: 2198 },
+    { name: 'Magic Mouse 妙控鼠标', qty: 2, price: 799, amount: 1598 },
+    { name: 'AirTag 4件装 防丢追踪器', qty: 1, price: 799, amount: 799 },
+    { name: 'Apple Pencil 第二代 手写笔', qty: 2, price: 969, amount: 1938 },
+    { name: 'iPhone 15 硅胶保护壳', qty: 3, price: 399, amount: 1197 },
+    { name: 'MagSafe 双项充电器', qty: 2, price: 1049, amount: 2098 },
+    { name: 'USB-C 转 Lightning 连接线', qty: 5, price: 145, amount: 725 },
+    { name: '20W USB-C 电源适配器', qty: 3, price: 149, amount: 447 },
+    { name: 'HomePod mini 智能音箱 白色', qty: 2, price: 749, amount: 1498 },
+    { name: 'AirTag 皮革钥匙扣', qty: 2, price: 279, amount: 558 },
+    { name: 'iPhone 15 Pro 透明保护壳', qty: 2, price: 399, amount: 798 },
+    { name: 'Apple TV 4K 128GB', qty: 1, price: 1499, amount: 1499 },
+    { name: 'iPad Pro 11英寸 M2 512GB', qty: 1, price: 7999, amount: 7999 },
+    { name: 'MacBook Air 13英寸 M2 512GB', qty: 1, price: 9499, amount: 9499 },
+    { name: 'Mac mini M2 芯片 256GB', qty: 1, price: 4299, amount: 4299 },
+    { name: 'Studio Display 27英寸 5K', qty: 1, price: 11499, amount: 11499 },
+    { name: 'iPhone 14 Pro Max 1TB 暗紫色', qty: 1, price: 10999, amount: 10999 },
+    { name: 'Magic Trackpad 妙控板 黑色', qty: 1, price: 1099, amount: 1099 },
+    { name: 'Beats Studio Pro 头戴式耳机', qty: 2, price: 2699, amount: 5398 },
+    { name: 'Apple Care+ 服务计划 iPhone', qty: 2, price: 1398, amount: 2796 },
+    { name: 'Thunderbolt 4 Pro 连接线 1.8米', qty: 2, price: 1169, amount: 2338 },
+    { name: 'MagSafe 充电宝 5000mAh', qty: 3, price: 749, amount: 2247 },
+    { name: 'iPhone 15 Pro MagSafe 皮革钱包', qty: 2, price: 469, amount: 938 },
+    { name: 'AirPods Max 头戴式耳机 银色', qty: 1, price: 4399, amount: 4399 },
+    { name: 'Apple Polishing Cloth 清洁布', qty: 5, price: 145, amount: 725 },
+  ],
+  totalAmount: 138940,
+};
+
+// Story 9: 循环表格打印（多页展示）
+export const LoopTable: Story = {
+  render: () => {
+    const [template, setTemplate] = useState<PrintTemplate>({
+      name: '订单明细表',
+      paper: { size: 'A4', orientation: 'portrait', headerHeight: 30, footerHeight: 30 },
+      elements: [
+        {
+          id: 'title',
+          type: 'text',
+          left: 75,
+          top: 10,
+          binding: '"订单明细表"',
+          fontSize: 20,
+          fontWeight: 'bold',
+          textAlign: 'center',
+        },
+        {
+          id: 'orderInfo',
+          type: 'text',
+          left: 20,
+          top: 40,
+          binding: '"订单号: "+{{orderNo}}+"  客户: "+{{customerName}}+"  日期: "+{{orderDate}}',
+          fontSize: 12,
+        },
+        {
+          id: 'itemsTable',
+          type: 'table',
+          left: 20,
+          top: 60,
+          width: 170,
+          height: 260,  // 增加高度以容纳更多数据（30行 * 8mm + 表头10mm = 250mm）
+          isLoopTable: true,
+          tableConfig: {
+            dataSource: 'items',
+            columns: [
+              { field: 'name', title: '商品名称', width: 70, align: 'left' },
+              { field: 'qty', title: '数量', width: 30, align: 'center' },
+              { field: 'price', title: '单价', width: 35, align: 'right', formatter: '￥{{value}}' },
+              { field: 'price*qty', title: '金额', width: 35, align: 'right', formatter: '￥{{value}}' },
+            ],
+            rowHeight: 8,
+            headerHeight: 10,
+            showHeader: true,
+            headerRepeat: true,
+            borderWidth: 1,
+            borderColor: '#000000',
+            headerBgColor: '#e6f7ff',
+            headerTextColor: '#000000',
+            evenRowBgColor: '#fafafa',
+          },
+        },
+        {
+          id: 'total',
+          type: 'text',
+          left: 150,
+          top: 330,  // 调整到表格之后
+          binding: '"合计: ￥"+{{totalAmount}}',
+          fontSize: 16,
+          fontWeight: 'bold',
+          fill: '#ff4d4f',
+          textAlign: 'right',
+        },
+      ],
+    });
+
+    return (
+      <Suspense fallback={<Loading />}>
+        <PrintDesignerLazy
+          template={template}
+          data={tableData}
+          onTemplateChange={setTemplate}
+        />
+      </Suspense>
+    );
+  },
+};
