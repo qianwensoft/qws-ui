@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as fabric from 'fabric';
+import { Type, Image, Barcode, QrCode, Minus, Square, Table } from 'lucide-react';
 import './PrintDesigner.css';
 
 // 纸张尺寸定义（单位：mm）
@@ -24,7 +25,7 @@ export interface PaperConfig {
 // 数据绑定元素
 export interface DataBindingElement {
   id: string;
-  type: 'text' | 'image' | 'barcode' | 'qrcode';
+  type: 'text' | 'image' | 'barcode' | 'qrcode' | 'line' | 'rect' | 'table';
   left: number;
   top: number;
   width?: number;
@@ -37,6 +38,12 @@ export interface DataBindingElement {
   fill?: string;
   fontWeight?: string | number;
   textAlign?: string;
+  // 线条样式
+  stroke?: string;
+  strokeWidth?: number;
+  // 特殊标记
+  isHeader?: boolean;  // 是否为页眉
+  isFooter?: boolean;  // 是否为页脚
 }
 
 // 打印模板
@@ -101,6 +108,92 @@ const parseBinding = (binding: string, data: Record<string, any>): string => {
   }
 };
 
+// 组件工具定义
+interface ComponentTool {
+  type: DataBindingElement['type'];
+  label: string;
+  icon: React.ReactNode;
+  defaultProps: Partial<DataBindingElement>;
+}
+
+// 工具栏组件列表
+const COMPONENT_TOOLS: ComponentTool[] = [
+  {
+    type: 'text',
+    label: '文本',
+    icon: <Type size={20} />,
+    defaultProps: {
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#000000',
+      binding: '双击编辑',
+    },
+  },
+  {
+    type: 'image',
+    label: '图片',
+    icon: <Image size={20} />,
+    defaultProps: {
+      width: 100,
+      height: 100,
+    },
+  },
+  {
+    type: 'barcode',
+    label: '条形码',
+    icon: <Barcode size={20} />,
+    defaultProps: {
+      width: 150,
+      height: 50,
+      binding: '{{barcode}}',
+    },
+  },
+  {
+    type: 'qrcode',
+    label: '二维码',
+    icon: <QrCode size={20} />,
+    defaultProps: {
+      width: 80,
+      height: 80,
+      binding: '{{qrcode}}',
+    },
+  },
+  {
+    type: 'line',
+    label: '横线',
+    icon: <Minus size={20} />,
+    defaultProps: {
+      width: 150,
+      height: 1,
+      stroke: '#000000',
+      strokeWidth: 1,
+    },
+  },
+  {
+    type: 'rect',
+    label: '矩形',
+    icon: <Square size={20} />,
+    defaultProps: {
+      width: 100,
+      height: 60,
+      stroke: '#000000',
+      strokeWidth: 1,
+      fill: 'transparent',
+    },
+  },
+  {
+    type: 'table',
+    label: '表格',
+    icon: <Table size={20} />,
+    defaultProps: {
+      width: 180,
+      height: 120,
+      stroke: '#000000',
+      strokeWidth: 1,
+    },
+  },
+];
+
 export const PrintDesigner: React.FC<PrintDesignerProps> = ({
   template,
   data = {},
@@ -117,6 +210,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       elements: [],
     }
   );
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
 
   // mm 转 px（假设 96 DPI）
   const mmToPx = useCallback((mm: number) => {
@@ -223,22 +317,73 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
         displayValue = parseBinding(element.binding, data);
       }
 
-      if (element.type === 'text') {
-        const text = new fabric.Textbox(displayValue, {
-          left: mmToPx(element.left),
-          top: mmToPx(element.top),
-          width: element.width ? mmToPx(element.width) : 200,
-          fontSize: element.fontSize || 14,
-          fontFamily: element.fontFamily || 'Arial',
-          fill: element.fill || '#000000',
-          fontWeight: (element.fontWeight as any) || 'normal',
-          textAlign: element.textAlign || 'left',
-          selectable: !readOnly,
-          editable: !readOnly,
-        });
+      let fabricObj: fabric.Object | null = null;
 
-        (text as any).customData = element;
-        canvas.add(text);
+      switch (element.type) {
+        case 'text':
+          fabricObj = new fabric.Textbox(displayValue, {
+            left: mmToPx(element.left),
+            top: mmToPx(element.top),
+            width: element.width ? mmToPx(element.width) : 200,
+            fontSize: element.fontSize || 14,
+            fontFamily: element.fontFamily || 'Arial',
+            fill: element.fill || '#000000',
+            fontWeight: (element.fontWeight as any) || 'normal',
+            textAlign: element.textAlign || 'left',
+            selectable: !readOnly,
+            editable: !readOnly,
+          });
+          break;
+
+        case 'line':
+          fabricObj = new fabric.Line(
+            [
+              mmToPx(element.left),
+              mmToPx(element.top),
+              mmToPx(element.left) + mmToPx(element.width || 100),
+              mmToPx(element.top),
+            ],
+            {
+              stroke: element.stroke || '#000000',
+              strokeWidth: element.strokeWidth || 1,
+              selectable: !readOnly,
+            }
+          );
+          break;
+
+        case 'rect':
+          fabricObj = new fabric.Rect({
+            left: mmToPx(element.left),
+            top: mmToPx(element.top),
+            width: mmToPx(element.width || 100),
+            height: mmToPx(element.height || 60),
+            fill: element.fill || 'transparent',
+            stroke: element.stroke || '#000000',
+            strokeWidth: element.strokeWidth || 1,
+            selectable: !readOnly,
+          });
+          break;
+
+        case 'barcode':
+        case 'qrcode':
+          // 暂时用文本占位
+          fabricObj = new fabric.Textbox(`[${element.type}]\n${displayValue}`, {
+            left: mmToPx(element.left),
+            top: mmToPx(element.top),
+            width: mmToPx(element.width || 100),
+            height: mmToPx(element.height || 50),
+            fontSize: 12,
+            fill: '#8c8c8c',
+            textAlign: 'center',
+            selectable: !readOnly,
+            editable: false,
+          });
+          break;
+      }
+
+      if (fabricObj) {
+        (fabricObj as any).customData = element;
+        canvas.add(fabricObj);
       }
     });
 
@@ -253,34 +398,141 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     fabricCanvasRef.current.setDimensions(paperSize);
   }, [currentTemplate.paper, getPaperSize]);
 
-  // 添加文本元素
-  const addTextElement = () => {
+  // 通用添加元素方法
+  const addElement = (tool: ComponentTool) => {
     if (!fabricCanvasRef.current) return;
 
+    const canvas = fabricCanvasRef.current;
+    const centerX = pxToMm(canvas.width! / 2);
+    const centerY = pxToMm(canvas.height! / 2);
+
     const newElement: DataBindingElement = {
-      id: `text_${Date.now()}`,
-      type: 'text',
-      left: 20,
-      top: 20,
-      binding: '双击编辑绑定',
-      fontSize: 14,
-      fontFamily: 'Arial',
-      fill: '#000000',
+      id: `${tool.type}_${Date.now()}`,
+      type: tool.type,
+      left: centerX - 50,
+      top: centerY - 20,
+      ...tool.defaultProps,
     };
 
-    const text = new fabric.Textbox('双击编辑', {
-      left: mmToPx(newElement.left),
-      top: mmToPx(newElement.top),
-      fontSize: newElement.fontSize,
-      fontFamily: newElement.fontFamily,
-      fill: newElement.fill,
-      width: 200,
-      editable: true,
-    });
+    let fabricObj: fabric.Object | null = null;
 
-    (text as any).customData = newElement;
-    fabricCanvasRef.current.add(text);
-    fabricCanvasRef.current.renderAll();
+    switch (tool.type) {
+      case 'text':
+        fabricObj = new fabric.Textbox('双击编辑', {
+          left: mmToPx(newElement.left),
+          top: mmToPx(newElement.top),
+          fontSize: newElement.fontSize || 14,
+          fontFamily: newElement.fontFamily || 'Arial',
+          fill: newElement.fill || '#000000',
+          width: newElement.width ? mmToPx(newElement.width) : 200,
+          editable: true,
+        });
+        break;
+
+      case 'line':
+        fabricObj = new fabric.Line(
+          [mmToPx(newElement.left), mmToPx(newElement.top), mmToPx(newElement.left) + mmToPx(newElement.width || 150), mmToPx(newElement.top)],
+          {
+            stroke: newElement.stroke || '#000000',
+            strokeWidth: newElement.strokeWidth || 1,
+          }
+        );
+        break;
+
+      case 'rect':
+        fabricObj = new fabric.Rect({
+          left: mmToPx(newElement.left),
+          top: mmToPx(newElement.top),
+          width: mmToPx(newElement.width || 100),
+          height: mmToPx(newElement.height || 60),
+          fill: newElement.fill || 'transparent',
+          stroke: newElement.stroke || '#000000',
+          strokeWidth: newElement.strokeWidth || 1,
+        });
+        break;
+
+      case 'barcode':
+      case 'qrcode':
+        // 暂时用文本占位
+        fabricObj = new fabric.Textbox(`[${tool.label}]\n${newElement.binding || ''}`, {
+          left: mmToPx(newElement.left),
+          top: mmToPx(newElement.top),
+          width: mmToPx(newElement.width || 100),
+          fontSize: 12,
+          fill: '#8c8c8c',
+          textAlign: 'center',
+        });
+        break;
+    }
+
+    if (fabricObj) {
+      (fabricObj as any).customData = newElement;
+      canvas.add(fabricObj);
+      canvas.renderAll();
+    }
+  };
+
+  // 添加页眉线
+  const addHeaderLine = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const canvas = fabricCanvasRef.current;
+    const paperWidth = canvas.width!;
+
+    const newElement: DataBindingElement = {
+      id: `header_${Date.now()}`,
+      type: 'line',
+      left: pxToMm(10),
+      top: pxToMm(30),
+      width: pxToMm(paperWidth - 20),
+      stroke: '#000000',
+      strokeWidth: 1,
+      isHeader: true,
+    };
+
+    const line = new fabric.Line(
+      [10, 30, paperWidth - 10, 30],
+      {
+        stroke: newElement.stroke,
+        strokeWidth: newElement.strokeWidth,
+      }
+    );
+
+    (line as any).customData = newElement;
+    canvas.add(line);
+    canvas.renderAll();
+  };
+
+  // 添加页脚线
+  const addFooterLine = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const canvas = fabricCanvasRef.current;
+    const paperWidth = canvas.width!;
+    const paperHeight = canvas.height!;
+
+    const newElement: DataBindingElement = {
+      id: `footer_${Date.now()}`,
+      type: 'line',
+      left: pxToMm(10),
+      top: pxToMm(paperHeight - 30),
+      width: pxToMm(paperWidth - 20),
+      stroke: '#000000',
+      strokeWidth: 1,
+      isFooter: true,
+    };
+
+    const line = new fabric.Line(
+      [10, paperHeight - 30, paperWidth - 10, paperHeight - 30],
+      {
+        stroke: newElement.stroke,
+        strokeWidth: newElement.strokeWidth,
+      }
+    );
+
+    (line as any).customData = newElement;
+    canvas.add(line);
+    canvas.renderAll();
   };
 
   // 删除选中元素
@@ -373,11 +625,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
           </div>
 
           <div className="toolbar-section">
-            <button onClick={addTextElement}>添加文本</button>
             <button onClick={deleteSelected}>删除选中</button>
-          </div>
-
-          <div className="toolbar-section">
             <button onClick={saveTemplate}>保存模板</button>
           </div>
 
@@ -389,24 +637,92 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
         </div>
       )}
 
-      <div className="canvas-wrapper">
-        <canvas ref={canvasRef} />
-      </div>
+      <div className="print-content">
+        {/* 左侧组件面板 */}
+        {!readOnly && showLeftPanel && (
+          <div className="component-panel">
+            <div className="panel-header">
+              <h3>组件库</h3>
+              <button
+                className="panel-toggle"
+                onClick={() => setShowLeftPanel(false)}
+                title="收起"
+              >
+                «
+              </button>
+            </div>
 
-      {showToolbar && !readOnly && (
-        <div className="print-properties">
-          <h3>数据绑定说明</h3>
-          <div className="binding-help">
-            <p>支持以下格式：</p>
-            <ul>
-              <li><code>{'{{fieldName}}'}</code> - 直接绑定字段</li>
-              <li><code>{'{{qty}}*100+"元"'}</code> - 计算并拼接</li>
-              <li><code>{'{{price}}+"/"+"{{unit}}"'}</code> - 字段拼接</li>
-            </ul>
-            <p>可用字段：{Object.keys(data).join(', ') || '无'}</p>
+            <div className="component-list">
+              <div className="component-category">
+                <h4>基础组件</h4>
+                {COMPONENT_TOOLS.map((tool) => (
+                  <div
+                    key={tool.type}
+                    className="component-item"
+                    onClick={() => addElement(tool)}
+                    title={`添加${tool.label}`}
+                  >
+                    <div className="component-icon">{tool.icon}</div>
+                    <div className="component-label">{tool.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="component-category">
+                <h4>页面元素</h4>
+                <div
+                  className="component-item"
+                  onClick={addHeaderLine}
+                  title="添加页眉线"
+                >
+                  <div className="component-icon">
+                    <Minus size={20} />
+                  </div>
+                  <div className="component-label">页眉线</div>
+                </div>
+                <div
+                  className="component-item"
+                  onClick={addFooterLine}
+                  title="添加页脚线"
+                >
+                  <div className="component-icon">
+                    <Minus size={20} />
+                  </div>
+                  <div className="component-label">页脚线</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel-footer">
+              <h4>数据绑定</h4>
+              <div className="binding-help-mini">
+                <p><code>{'{{field}}'}</code> - 字段值</p>
+                <p><code>{'{{qty}}*100+"元"'}</code> - 计算</p>
+                <p className="available-fields">
+                  可用: {Object.keys(data).slice(0, 3).join(', ')}
+                  {Object.keys(data).length > 3 && '...'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 画布区域 */}
+        <div className="canvas-area">
+          {!showLeftPanel && !readOnly && (
+            <button
+              className="panel-show-button"
+              onClick={() => setShowLeftPanel(true)}
+              title="显示组件面板"
+            >
+              »
+            </button>
+          )}
+          <div className="canvas-wrapper">
+            <canvas ref={canvasRef} />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
