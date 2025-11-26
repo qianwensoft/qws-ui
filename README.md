@@ -1,39 +1,97 @@
-# 高级表格组件
+# 高级表格组件 (Advanced Table Component)
 
-基于 `@tanstack/react-table` 和 `@dnd-kit` 实现的高级表格组件，具备以下功能：
+基于 `@tanstack/react-table` 和 `@dnd-kit` 实现的功能丰富的高级表格组件。
 
-## 功能特性
+## ✨ 主要特性
 
-### 🎯 功能 1：Excel 粘贴自动填充
-- 从 Excel/Google Sheets 复制多行多列数据
-- 点击任意单元格并粘贴（Ctrl+V 或 Cmd+V）
-- 自动解析制表符分隔的数据并填充到表格中
+### 📝 数据编辑
+- **单击编辑模式**：单击单元格直接进入编辑
+- **双击编辑模式**：双击进入编辑，显示确认/取消按钮
+- **自动保存**：失焦自动保存（可选）
+- **列级编辑控制**：可单独禁用某些列的编辑功能
 
-### 📏 功能 2：列拖拽排序
-- 拖动列头左侧的 ⋮⋮ 图标
-- 使用 `@dnd-kit` 实现流畅的拖拽体验
+### 📋 Excel 粘贴
+- 支持从 Excel、Google Sheets 等复制多行多列数据
+- 按所见即所得的顺序填充（先横向后纵向）
+- 自动创建新行（当粘贴数据超出现有行数时）
+- 实时变更追踪和回调
 
-### 🔧 功能 3：调整列宽
-- 拖动列头右侧的边界线调整宽度
-- 实时预览列宽变化
+### 🔍 列过滤
+- 12 种过滤操作符（等于、大于、小于、包含等）
+- 支持多条件过滤（AND 逻辑）
+- 客户端过滤或服务端过滤（通过回调实现）
 
-### 👁️ 功能 4：显示/隐藏列
-- 点击右上角"列设置"按钮
-- 通过复选框控制列的显示/隐藏
+### 📊 导出功能
+- 导出到 Excel（.xlsx 格式）
+- 三种导出范围：当前页、过滤后数据、全部数据
+- 保留表格样式（表头、斑马纹、边框等）
 
-## 安装依赖
+### 🎯 列管理
+- **拖拽排序**：拖动列头左侧图标调整列顺序
+- **调整宽度**：拖动列头右侧边界线
+- **显示/隐藏**：通过列设置弹窗控制
+
+### 📄 分页功能
+- 页码导航（首页、上一页、下一页、末页）
+- 每页条数选择
+- 快速跳转到指定页
+
+### 🎨 视觉效果
+- 斑马纹行（可自定义颜色）
+- 交叉高亮（行列交叉点突出显示）
+- 多选单元格（拖拽选择）
+- 可自定义选中边框颜色
+
+## 🚀 快速开始
+
+### 安装依赖
 
 ```bash
+yarn install
+# 或
 npm install
 ```
 
-## 运行项目
+### 运行 Storybook（推荐）
+
+查看所有示例和文档：
 
 ```bash
+yarn storybook
+# 或
+npm run storybook
+```
+
+然后在浏览器中打开 http://localhost:6006
+
+### 运行开发环境
+
+```bash
+yarn dev
+# 或
 npm run dev
 ```
 
-## 使用示例
+## 📚 Storybook 示例
+
+项目已配置完整的 Storybook，包含 10 个示例：
+
+1. **Basic** - 基础表格
+2. **Edit Mode** - 单击编辑模式
+3. **Double Click Edit** - 双击编辑模式
+4. **Excel Paste** - Excel 粘贴功能
+5. **Filtering** - 列过滤功能
+6. **Pagination** - 分页功能
+7. **Column Management** - 列管理功能
+8. **Custom Styling** - 自定义样式
+9. **Full Featured** - 完整功能示例
+10. **Large Dataset** - 大数据集示例
+
+每个示例都有详细的说明和交互演示。
+
+## 💻 使用示例
+
+### 基础用法
 
 ```tsx
 import { AdvancedTable } from './components/AdvancedTable';
@@ -43,44 +101,181 @@ interface Person {
   id: string;
   name: string;
   age: number;
+  email: string;
 }
 
 const columns: ColumnDef<Person>[] = [
-  {
-    id: 'name',
-    accessorKey: 'name',
-    header: '姓名',
-  },
-  {
-    id: 'age',
-    accessorKey: 'age',
-    header: '年龄',
-  },
+  { id: 'name', accessorKey: 'name', header: '姓名' },
+  { id: 'age', accessorKey: 'age', header: '年龄' },
+  { id: 'email', accessorKey: 'email', header: '邮箱' },
 ];
 
 const data: Person[] = [
-  { id: '1', name: '张三', age: 28 },
-  { id: '2', name: '李四', age: 32 },
+  { id: '1', name: '张三', age: 28, email: 'zhangsan@example.com' },
+  { id: '2', name: '李四', age: 32, email: 'lisi@example.com' },
 ];
 
 function App() {
+  const [tableData, setTableData] = useState(data);
+
   return (
     <AdvancedTable
-      data={data}
+      data={tableData}
       columns={columns}
-      onDataChange={(newData) => console.log('数据更新:', newData)}
+      onDataChange={setTableData}
+      enableEditing={true}
+      enablePaste={true}
+      enableFiltering={true}
+      enableExport={true}
     />
   );
 }
 ```
 
-## 技术栈
+### 完整功能配置
 
-- React 18
-- TypeScript
-- Vite
-- @tanstack/react-table
-- @dnd-kit/core
-- @dnd-kit/sortable
-- @dnd-kit/utilities
+```tsx
+<AdvancedTable
+  data={data}
+  columns={columns}
+  // 数据变更回调
+  onDataChange={(newData, changeInfo) => {
+    console.log('变更类型:', changeInfo?.type); // 'edit' 或 'paste'
+    console.log('变更的单元格:', changeInfo?.changes);
+    setData(newData);
+  }}
+  // 过滤回调
+  onFilterChange={(columnId, filters, allFilters) => {
+    console.log('过滤条件:', allFilters);
+  }}
+  // 选择变化回调
+  onSelectionChange={(selection) => {
+    console.log('选中的单元格:', selection?.cells);
+  }}
+  // 编辑功能
+  enableEditing={true}
+  editTriggerMode="click"  // 'click' 或 'doubleClick'
+  autoSave={true}
+  // 其他功能
+  enablePaste={true}
+  enableFiltering={true}
+  enableExport={true}
+  enableColumnReorder={true}
+  // 分页配置
+  enablePagination={true}
+  pagination={{
+    pageIndex: 0,
+    pageSize: 10,
+    totalCount: data.length,
+  }}
+  onPageChange={setPageIndex}
+  onPageSizeChange={setPageSize}
+  // 样式定制
+  enableZebraStripes={true}
+  enableCrossHighlight={true}
+  zebraStripeColor="#fafafa"
+  crossHighlightColor="#e6f7ff"
+  selectedBorderColor="#1890ff"
+/>
+```
 
+### 禁用某列的编辑
+
+```tsx
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', accessorKey: 'name', header: '姓名' },
+  {
+    id: 'email',
+    accessorKey: 'email',
+    header: '邮箱',
+    meta: {
+      editable: false,  // 禁用此列的编辑
+    },
+  },
+];
+```
+
+## 📦 技术栈
+
+- **React 18+**
+- **TypeScript**
+- **Vite**
+- **@tanstack/react-table** - 表格状态管理
+- **@dnd-kit** - 拖拽功能
+- **ExcelJS** - Excel 导出
+- **lucide-react** - 图标库
+- **Storybook** - 组件文档和示例
+
+## 📖 API 文档
+
+### Props
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `data` | `T[]` | 必填 | 表格数据 |
+| `columns` | `ColumnDef<T>[]` | 必填 | 列定义 |
+| `onDataChange` | `(data: T[], changeInfo?: DataChangeInfo<T>) => void` | - | 数据变更回调 |
+| `onFilterChange` | `OnFilterChange` | - | 过滤变更回调 |
+| `onSelectionChange` | `(selection: SelectionRangeInfo \| null) => void` | - | 选择变更回调 |
+| `enableEditing` | `boolean` | `true` | 启用编辑功能 |
+| `editTriggerMode` | `'click' \| 'doubleClick'` | `'doubleClick'` | 编辑触发模式 |
+| `autoSave` | `boolean` | `false` | 自动保存（失焦保存） |
+| `enablePaste` | `boolean` | `true` | 启用粘贴功能 |
+| `enableFiltering` | `boolean` | `true` | 启用过滤功能 |
+| `enableExport` | `boolean` | `true` | 启用导出功能 |
+| `enableColumnReorder` | `boolean` | `false` | 启用列排序功能 |
+| `enablePagination` | `boolean` | `false` | 启用分页功能 |
+| `enableZebraStripes` | `boolean` | `true` | 启用斑马纹 |
+| `enableCrossHighlight` | `boolean` | `true` | 启用交叉高亮 |
+| `zebraStripeColor` | `string` | `'#fafafa'` | 斑马纹颜色 |
+| `crossHighlightColor` | `string` | `'#e6f7ff'` | 交叉高亮颜色 |
+| `selectedBorderColor` | `string` | `'#1890ff'` | 选中边框颜色 |
+
+更多详细的 API 文档请参考 Storybook。
+
+## 🎯 最佳实践
+
+### 性能优化
+- 对于大数据集（>1000 行），建议启用分页
+- 使用 `React.memo` 包裹表格组件
+- 服务端过滤和分页可进一步提升性能
+
+### 数据管理
+- 使用 `onDataChange` 回调实时同步数据到后端
+- `changeInfo` 参数包含详细的变更信息
+- 支持批量更新（粘贴多个单元格）
+
+### 用户体验
+- 单击编辑 + 自动保存：适合快速数据录入场景
+- 双击编辑 + 确认按钮：适合需要谨慎确认的场景
+- 启用斑马纹和交叉高亮可提升可读性
+
+## 🔧 开发
+
+### 构建
+
+```bash
+yarn build
+# 或
+npm run build
+```
+
+### 构建 Storybook
+
+```bash
+yarn build-storybook
+# 或
+npm run build-storybook
+```
+
+## 📄 License
+
+MIT
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📮 联系
+
+如有问题或建议，请通过 Issue 联系我们。
