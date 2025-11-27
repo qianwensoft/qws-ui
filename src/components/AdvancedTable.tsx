@@ -31,6 +31,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, ChevronUp, ChevronDown, Download } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import './AdvancedTable.css';
 
 // 扩展 @tanstack/react-table 的 ColumnMeta 类型
@@ -289,18 +294,18 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     >
       <div className="filter-panel-header">
         <span className="filter-panel-title">过滤: {columnHeader}</span>
-        <button className="filter-close-button" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="filter-close-button" onClick={onClose}>
           <X size={16} />
-        </button>
+        </Button>
       </div>
       <div className="filter-panel-body">
         {filters.length === 0 ? (
           <div className="filter-empty-state">
             <p>暂无过滤条件</p>
-            <button className="filter-add-button" onClick={handleAddCondition}>
+            <Button variant="default" size="sm" className="filter-add-button" onClick={handleAddCondition}>
               <Plus size={14} />
               添加条件
-            </button>
+            </Button>
           </div>
         ) : (
           <>
@@ -340,25 +345,27 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                         {condition.operator === 'isEmpty' ? '为空' : '非空'}
                       </div>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="filter-remove-button"
                       onClick={() => handleRemoveCondition(condition.id)}
                       title="删除条件"
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="filter-panel-actions">
-              <button className="filter-add-condition-button" onClick={handleAddCondition}>
+              <Button variant="default" size="sm" className="filter-add-condition-button" onClick={handleAddCondition}>
                 <Plus size={14} />
                 添加条件
-              </button>
-              <button className="filter-clear-button" onClick={handleClearAll}>
+              </Button>
+              <Button variant="outline" size="sm" className="filter-clear-button" onClick={handleClearAll}>
                 清除全部
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -430,28 +437,32 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
     >
       <div className="header-content">
         {showDragHandle && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           className="drag-handle"
           {...attributes}
           {...listeners}
           title="拖拽排序"
         >
             <GripVertical size={16} />
-        </button>
+        </Button>
         )}
         <div className="header-title" style={{ flex: 1, minWidth: 0 }}>
         {children}
         </div>
         {showFilter && (
-          <button
+          <Button
             ref={filterButtonRef}
+            variant="ghost"
+            size="icon"
             className={`filter-button ${hasFilters ? 'filter-active' : ''}`}
             onClick={onFilterClick}
             title="过滤"
             style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}
           >
             <Filter size={14} />
-          </button>
+          </Button>
         )}
         <div
           className="resize-handle"
@@ -534,14 +545,16 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
       className={`column-settings-item ${isDragging ? 'dragging' : ''}`}
     >
       {enableReorder && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           className="column-drag-handle"
           {...attributes}
           {...listeners}
           title="拖拽排序"
         >
           <GripVertical size={16} />
-        </button>
+        </Button>
       )}
       <label className="column-checkbox">
         <input
@@ -553,22 +566,26 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
       </label>
       {enableReorder && (
         <div className="column-order-controls">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             className="column-move-button"
             onClick={() => onMoveUp(column.id)}
             disabled={isFirst}
             title="上移"
           >
             <ChevronUp size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className="column-move-button"
             onClick={() => onMoveDown(column.id)}
             disabled={isLast}
             title="下移"
           >
             <ChevronDown size={16} />
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -641,14 +658,11 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content column-settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>列设置</h3>
-          <button className="close-button" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="column-settings-modal">
+        <DialogHeader>
+          <DialogTitle>列设置</DialogTitle>
+        </DialogHeader>
         <div className="modal-body">
           {enableReorder && (
             <div className="column-settings-hint">
@@ -677,8 +691,8 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
             </SortableContext>
           </DndContext>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -821,7 +835,9 @@ const EditableCell: React.FC<EditableCellProps> = ({
         />
         {!autoSave && (
           <div className="editable-cell-actions">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               className="editable-cell-save"
               onClick={(e) => {
                 e.preventDefault();
@@ -832,8 +848,10 @@ const EditableCell: React.FC<EditableCellProps> = ({
               title="保存 (Enter)"
             >
               <Check size={14} />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               className="editable-cell-cancel"
               onClick={(e) => {
                 e.preventDefault();
@@ -844,7 +862,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
               title="取消 (Esc)"
             >
               <XIcon size={14} />
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -969,75 +987,86 @@ const Pagination: React.FC<PaginationProps> = ({
       <div className="pagination-controls">
         <div className="pagination-size-selector">
           <span>每页</span>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="pagination-size-select"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+          <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
+            <SelectTrigger className="pagination-size-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <span>条</span>
         </div>
 
         <div className="pagination-buttons">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             className="pagination-button"
             onClick={() => onPageChange(0)}
             disabled={pageIndex === 0}
             title="首页"
           >
             «
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             className="pagination-button"
             onClick={() => onPageChange(pageIndex - 1)}
             disabled={pageIndex === 0}
             title="上一页"
           >
             ‹
-          </button>
-          
+          </Button>
+
           {getPageNumbers().map((page, index) => (
             typeof page === 'number' ? (
-              <button
+              <Button
                 key={index}
+                variant={page === pageIndex ? "default" : "outline"}
+                size="icon"
                 className={`pagination-button ${page === pageIndex ? 'active' : ''}`}
                 onClick={() => onPageChange(page)}
               >
                 {page + 1}
-              </button>
+              </Button>
             ) : (
               <span key={index} className="pagination-ellipsis">
                 {page}
               </span>
             )
           ))}
-          
-          <button
+
+          <Button
+            variant="outline"
+            size="icon"
             className="pagination-button"
             onClick={() => onPageChange(pageIndex + 1)}
             disabled={pageIndex >= totalPages - 1}
             title="下一页"
           >
             ›
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             className="pagination-button"
             onClick={() => onPageChange(totalPages - 1)}
             disabled={pageIndex >= totalPages - 1}
             title="末页"
           >
             »
-          </button>
+          </Button>
         </div>
 
         <div className="pagination-jumper">
           <span>跳至</span>
-          <input
+          <Input
             type="number"
             min={1}
             max={totalPages}
@@ -1978,23 +2007,6 @@ export function AdvancedTable<T extends Record<string, any>>({
 
   // 显示导出菜单
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const exportButtonRef = useRef<HTMLDivElement>(null);
-
-  // 点击外部关闭导出菜单
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (exportButtonRef.current && !exportButtonRef.current.contains(event.target as Node)) {
-        setShowExportMenu(false);
-      }
-    };
-
-    if (showExportMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showExportMenu]);
 
   return (
     <div className="advanced-table-container">
@@ -2002,8 +2014,9 @@ export function AdvancedTable<T extends Record<string, any>>({
         {/* 左侧区域：扩展按钮 */}
         <div className="toolbar-left">
           {toolbarButtons.map((btn) => (
-            <button
+            <Button
               key={btn.key}
+              variant="outline"
               className="toolbar-button"
               onClick={btn.onClick}
               disabled={btn.disabled}
@@ -2011,71 +2024,71 @@ export function AdvancedTable<T extends Record<string, any>>({
             >
               {btn.icon}
               {btn.label && <span>{btn.label}</span>}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* 右侧区域：导出和列设置 */}
         <div className="toolbar-right">
           {enableExport && (
-            <div className="export-dropdown" ref={exportButtonRef}>
-              <button
-                className="export-button"
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                title="导出 Excel"
-              >
-                <Download size={16} />
-                <span>导出</span>
-              </button>
-              {showExportMenu && (
-                <div className="export-menu">
-                  <button
-                    className="export-menu-item"
-                    onClick={() => {
-                      handleExport('filtered');
-                      setShowExportMenu(false);
-                    }}
-                  >
+            <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="export-button">
+                  <Download size={16} />
+                  <span>导出</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    handleExport('filtered');
+                    setShowExportMenu(false);
+                  }}
+                >
+                  <div className="export-menu-item-content">
                     导出当前数据
                     <span className="export-menu-hint">（所见即所得）</span>
-                  </button>
-                  {pagination && allData && (
-                    <>
-                      <button
-                        className="export-menu-item"
-                        onClick={() => {
-                          handleExport('current');
-                          setShowExportMenu(false);
-                        }}
-                      >
+                  </div>
+                </DropdownMenuItem>
+                {pagination && allData && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        handleExport('current');
+                        setShowExportMenu(false);
+                      }}
+                    >
+                      <div className="export-menu-item-content">
                         仅导出当前页
                         <span className="export-menu-hint">（第 {pagination.pageIndex + 1} 页）</span>
-                      </button>
-                      <button
-                        className="export-menu-item"
-                        onClick={() => {
-                          handleExport('all');
-                          setShowExportMenu(false);
-                        }}
-                      >
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        handleExport('all');
+                        setShowExportMenu(false);
+                      }}
+                    >
+                      <div className="export-menu-item-content">
                         导出全部数据
                         <span className="export-menu-hint">（共 {allData.length} 条）</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+                      </div>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {enableColumnReorder && (
-        <button
-          className="column-settings-button"
-          onClick={() => setShowColumnModal(true)}
-          title="列设置"
-        >
+            <Button
+              variant="outline"
+              className="column-settings-button"
+              onClick={() => setShowColumnModal(true)}
+              title="列设置"
+            >
               <Settings size={16} />
               <span>列设置</span>
-        </button>
+            </Button>
           )}
         </div>
       </div>

@@ -2896,6 +2896,17 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     }));
   };
 
+  // 修改自定义纸张尺寸
+  const changeCustomPaperSize = (dimension: 'width' | 'height', value: number) => {
+    setCurrentTemplate((prev) => ({
+      ...prev,
+      paper: {
+        ...prev.paper,
+        [dimension]: value
+      },
+    }));
+  };
+
   // 切换纸张方向
   const toggleOrientation = () => {
     setCurrentTemplate((prev) => ({
@@ -3265,6 +3276,33 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {currentTemplate.paper.size === 'CUSTOM' && (
+            <>
+              <div className="toolbar-section">
+                <label>宽度(mm)：</label>
+                <Input
+                  type="number"
+                  min="10"
+                  max="1000"
+                  value={currentTemplate.paper.width || PAPER_SIZES.CUSTOM.width}
+                  onChange={(e) => changeCustomPaperSize('width', parseFloat(e.target.value) || 0)}
+                  className="w-[100px]"
+                />
+              </div>
+              <div className="toolbar-section">
+                <label>高度(mm)：</label>
+                <Input
+                  type="number"
+                  min="10"
+                  max="1000"
+                  value={currentTemplate.paper.height || PAPER_SIZES.CUSTOM.height}
+                  onChange={(e) => changeCustomPaperSize('height', parseFloat(e.target.value) || 0)}
+                  className="w-[100px]"
+                />
+              </div>
+            </>
+          )}
 
           <div className="toolbar-section">
             <Button variant="outline" onClick={toggleOrientation}>

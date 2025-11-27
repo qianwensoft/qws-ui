@@ -10,22 +10,31 @@ const config: StorybookConfig = {
   ],
   framework: {
     name: "@storybook/react-vite",
-    options: {},
+    options: {
+      reactOptions: {
+        strictMode: true,
+      },
+      fastRefresh: true,
+    },
   },
   docs: {
     autodocs: "tag",
   },
   staticDirs: ["../public"],
-  async viteFinal(config) {
+  async viteFinal(config, { configType }) {
+    const isProduction = configType === 'PRODUCTION';
+    
+    // Don't override mode - let Vite handle it naturally
     return {
       ...config,
       define: {
         ...config.define,
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+        // Only set NODE_ENV if it's actually needed
+        ...(isProduction ? { 'process.env.NODE_ENV': '"production"' } : {}),
       },
       optimizeDeps: {
         ...config.optimizeDeps,
-        include: [...(config.optimizeDeps?.include || []), 'fabric', 'react', 'react-dom'],
+        include: [...(config.optimizeDeps?.include || []), 'fabric'],
       },
       resolve: {
         ...config.resolve,
