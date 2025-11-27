@@ -3,6 +3,10 @@ import * as fabric from 'fabric';
 import { Type, Image, Barcode, QrCode, Minus, Square, Table, ZoomIn, ZoomOut, Ruler as RulerIcon, Settings, X, Circle, Triangle, Pentagon, Star, Plus, Trash2 } from 'lucide-react';
 import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { AdvancedTable, type ColumnDef } from './AdvancedTable';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import './PrintDesigner.css';
 
 // 可拖动模态窗组件
@@ -128,20 +132,16 @@ const DraggableModal: React.FC<DraggableModalProps> = ({
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
             {title}
           </h3>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
               padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              color: '#8c8c8c',
             }}
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
         <div
           style={{
@@ -222,6 +222,7 @@ export interface DataBindingElement {
   // 线条样式
   stroke?: string;
   strokeWidth?: number;
+  strokeDashArray?: number[];  // 虚线样式，例如 [5, 5] 表示 5px 实线 + 5px 间隔
   // 特殊形状属性
   radius?: number;  // 圆形半径
   rx?: number;      // 椭圆 x 轴半径
@@ -230,6 +231,7 @@ export interface DataBindingElement {
   // 特殊标记
   isHeader?: boolean;  // 是否为页眉
   isFooter?: boolean;  // 是否为页脚
+  printVisible?: boolean;  // 打印时是否显示（默认 true，对于辅助线可设为 false）
   // 表格循环配置
   isLoopTable?: boolean;  // 是否为循环表格
   tableConfig?: TableConfig;  // 表格配置
@@ -478,7 +480,8 @@ const renderLoopTable = (
   element: DataBindingElement,
   data: Record<string, any>,
   mmToPx: (mm: number) => number,
-  paperConfig?: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number }
+  paperConfig?: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number },
+  footerLineY?: number  // 实际页脚线位置（mm），如果没有传入则使用 paperConfig.footerHeight
 ): fabric.Group | null => {
   if (!element.isLoopTable || !element.tableConfig) {
     return null;
@@ -508,10 +511,18 @@ const renderLoopTable = (
 
   const paperSize = paperSizes[paperConfig?.size || 'A4'] || paperSizes.A4;
   const pageHeight = mmToPx(paperConfig?.orientation === 'landscape' ? paperSize.width : paperSize.height);
-  const footerArea = mmToPx(paperConfig?.footerHeight || 0);
 
-  // 第一页底部边界（页脚线位置）
-  const firstPageBottom = pageHeight - footerArea;
+  // 第一页底部边界（使用实际页脚线位置或默认值）
+  const firstPageBottom = footerLineY !== undefined
+    ? mmToPx(footerLineY)  // 使用实际页脚线位置
+    : pageHeight - mmToPx(paperConfig?.footerHeight || 0);  // 使用默认值
+
+  console.log('🎨 画布渲染表格（第一页预览）:', {
+    footerLineY: footerLineY !== undefined ? footerLineY + 'mm' : '未指定',
+    firstPageBottom: firstPageBottom + 'px',
+    tableStartY: element.top + 'mm',
+    totalRows: dataSource.length
+  });
 
   // 表格起始位置
   const tableStartY = mmToPx(element.top);
@@ -716,7 +727,8 @@ const calculateTablePages = (
   element: DataBindingElement,
   data: Record<string, any>,
   mmToPx: (mm: number) => number,
-  paperConfig: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number }
+  paperConfig: { size: string; orientation: 'portrait' | 'landscape'; headerHeight?: number; footerHeight?: number },
+  footerLineY: number  // 实际页脚线位置（mm）
 ): { pageCount: number; rowsPerPage: number[] } => {
   if (!element.isLoopTable || !element.tableConfig) {
     return { pageCount: 1, rowsPerPage: [] };
@@ -745,16 +757,28 @@ const calculateTablePages = (
   const footerArea = mmToPx(paperConfig.footerHeight || 0);
 
   const tableStartY = mmToPx(element.top);
-  const firstPageBottom = pageHeight - footerArea;
 
-  // 第一页可用高度
+  // 使用实际页脚线位置（mm转px）
+  const firstPageBottom = mmToPx(footerLineY);
+
+  console.log('📊 计算表格分页:', {
+    tableStartY: element.top + 'mm',
+    footerLineY: footerLineY + 'mm',
+    firstPageBottom: firstPageBottom + 'px',
+    rowHeight: config.rowHeight + 'mm',
+    totalRows: dataSource.length
+  });
+
+  // 第一页可用高度（从表格起始位置到页脚线位置）
   let availableHeight = firstPageBottom - tableStartY;
   if (config.showHeader) {
     availableHeight -= headerHeight;
   }
 
-  const firstPageRows = Math.floor(availableHeight / rowHeight);
+  const firstPageRows = Math.max(0, Math.floor(availableHeight / rowHeight));
   let remainingRows = dataSource.length - firstPageRows;
+
+  console.log(`  第一页可容纳 ${firstPageRows} 行，剩余 ${remainingRows} 行`);
 
   const rowsPerPage: number[] = [firstPageRows];
   let currentPage = 1;
@@ -769,10 +793,15 @@ const calculateTablePages = (
     }
 
     const rowsThisPage = Math.floor(pageAvailableHeight / rowHeight);
-    rowsPerPage.push(Math.min(rowsThisPage, remainingRows));
-    remainingRows -= rowsThisPage;
+    const actualRows = Math.min(rowsThisPage, remainingRows);
+    rowsPerPage.push(actualRows);
+    remainingRows -= actualRows;
     currentPage++;
+
+    console.log(`  第 ${currentPage} 页可容纳 ${actualRows} 行，剩余 ${remainingRows} 行`);
   }
+
+  console.log(`  总共需要 ${currentPage} 页，每页行数:`, rowsPerPage);
 
   return { pageCount: currentPage, rowsPerPage };
 };
@@ -1220,6 +1249,16 @@ const PropertyPanel: React.FC<{
                 min="1"
               />
             </div>
+            {(element.isHeader || element.isFooter) && (
+              <div className="property-row">
+                <label>打印时显示</label>
+                <input
+                  type="checkbox"
+                  checked={element.printVisible !== false}
+                  onChange={(e) => onUpdate('printVisible', e.target.checked)}
+                />
+              </div>
+            )}
             {element.type === 'rect' && (
               <div className="property-row">
                 <label>填充颜色</label>
@@ -1417,6 +1456,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
   const [selectedElement, setSelectedElement] = useState<DataBindingElement | null>(null);  // 选中的元素
   const [activeId, setActiveId] = useState<string | null>(null);  // 拖拽中的组件ID
   const [draggedTool, setDraggedTool] = useState<ComponentTool | null>(null);  // 正在拖拽的工具
+  const [printHeaderFooter, setPrintHeaderFooter] = useState(true);  // 打印时是否显示页眉页脚
   const isAddingElementRef = useRef(false);  // 标记是否正在添加元素，避免被 clear 清除
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);  // 画布容器 ref
   const [isTableConfigModalOpen, setIsTableConfigModalOpen] = useState(false);  // 表格配置模态窗状态
@@ -1932,12 +1972,20 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
 
     console.log('🔄 渲染模板元素，元素数量:', currentTemplate.elements.length);
     const canvas = fabricCanvasRef.current;
-    
+
     // 先清空画布
     canvas.clear();
     canvas.backgroundColor = '#ffffff';
-    
+
     console.log('🧹 画布已清空，准备渲染', currentTemplate.elements.length, '个元素');
+
+    // 查找页脚线位置（用于限制循环表格的渲染）
+    const footerLineElements = currentTemplate.elements.filter(el => el.isFooter);
+    const footerLineY = footerLineElements.length > 0
+      ? Math.min(...footerLineElements.map(el => el.top))
+      : undefined;
+
+    console.log('🎨 画布渲染 - 页脚线位置:', footerLineY !== undefined ? footerLineY + 'mm' : '未找到');
 
     currentTemplate.elements.forEach((element) => {
       let displayValue = element.binding || '';
@@ -1976,6 +2024,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
             {
               stroke: element.stroke || '#000000',
               strokeWidth: element.strokeWidth || 1,
+              strokeDashArray: element.strokeDashArray,  // 应用虚线样式（如果有）
               selectable: !readOnly,
             }
           );
@@ -2042,7 +2091,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
         case 'table':
           // 循环表格渲染
           if (element.isLoopTable) {
-            fabricObj = renderLoopTable(element, data, mmToPx, template.paper);
+            fabricObj = renderLoopTable(element, data, mmToPx, template.paper, footerLineY);
           } else {
             // 普通表格占位符（使用网格）
             const tableWidth = mmToPx(element.width || 180);
@@ -2248,8 +2297,14 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       // 移除旧的表格对象
       canvas.remove(activeObject);
 
+      // 查找页脚线位置
+      const footerLineElements = currentTemplate.elements.filter(el => el.isFooter);
+      const footerLineY = footerLineElements.length > 0
+        ? Math.min(...footerLineElements.map(el => el.top))
+        : undefined;
+
       // 重新渲染表格
-      const newTableObj = renderLoopTable(updatedData, data, mmToPx, template.paper);
+      const newTableObj = renderLoopTable(updatedData, data, mmToPx, template.paper, footerLineY);
       if (newTableObj) {
         newTableObj.customData = updatedData;
         canvas.add(newTableObj);
@@ -2289,6 +2344,19 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
 
     const canvas = fabricCanvasRef.current;
     console.log('🔧 Canvas 对象:', canvas);
+
+    // 查找页脚线位置（从当前画布对象中查找）
+    let footerLineY: number | undefined;
+    canvas.getObjects().forEach((obj: any) => {
+      if (obj.customData && obj.customData.isFooter) {
+        const objTop = obj.customData.top;
+        if (footerLineY === undefined || objTop < footerLineY) {
+          footerLineY = objTop;
+        }
+      }
+    });
+    console.log('🎨 addElement - 页脚线位置:', footerLineY !== undefined ? footerLineY + 'mm' : '未找到');
+
     let left: number, top: number;
 
     if (dropX !== undefined && dropY !== undefined) {
@@ -2353,6 +2421,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
           {
             stroke: newElement.stroke || '#000000',
             strokeWidth: newElement.strokeWidth || 1,
+            strokeDashArray: newElement.strokeDashArray,  // 应用虚线样式（如果有）
           }
         );
         break;
@@ -2414,7 +2483,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       case 'table':
         // 循环表格渲染
         if (newElement.isLoopTable) {
-          fabricObj = renderLoopTable(newElement, data, mmToPx, template.paper);
+          fabricObj = renderLoopTable(newElement, data, mmToPx, template.paper, footerLineY);
         } else {
           // 普通表格占位符（使用网格）
           const tableWidth = mmToPx(newElement.width || 180);
@@ -2553,6 +2622,39 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       setTimeout(() => {
         console.log('💾 延迟保存模板');
         saveTemplate();
+
+        // 如果是循环表格，自动添加页脚线（在 225mm 位置）
+        if (tool.type === 'table' && newElement.isLoopTable) {
+          const paperWidth = canvas.width!;
+          const footerLineElement: DataBindingElement = {
+            id: `footer_${Date.now()}`,
+            type: 'line',
+            left: pxToMm(10),
+            top: 225,  // 默认在 225mm 位置
+            width: pxToMm(paperWidth - 20),
+            stroke: '#999999',
+            strokeWidth: 1,
+            strokeDashArray: [5, 5],
+            isFooter: true,
+            printVisible: false,  // 默认不打印（辅助线）
+          };
+
+          const footerLine = new fabric.Line(
+            [10, mmToPx(225), paperWidth - 10, mmToPx(225)],
+            {
+              stroke: footerLineElement.stroke,
+              strokeWidth: footerLineElement.strokeWidth,
+              strokeDashArray: footerLineElement.strokeDashArray,
+            }
+          );
+
+          (footerLine as any).customData = footerLineElement;
+          canvas.add(footerLine);
+          canvas.renderAll();
+          console.log('✅ 自动添加页脚线到 225mm 位置');
+          saveTemplate();
+        }
+
         // 再延迟重置标志
         setTimeout(() => {
           isAddingElementRef.current = false;
@@ -2667,9 +2769,11 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       left: pxToMm(10),
       top: pxToMm(30),
       width: pxToMm(paperWidth - 20),
-      stroke: '#000000',
+      stroke: '#999999',
       strokeWidth: 1,
+      strokeDashArray: [5, 5],  // 虚线样式
       isHeader: true,
+      printVisible: false,  // 默认不打印（辅助线）
     };
 
     const line = new fabric.Line(
@@ -2677,6 +2781,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       {
         stroke: newElement.stroke,
         strokeWidth: newElement.strokeWidth,
+        strokeDashArray: newElement.strokeDashArray,  // 应用虚线样式
       }
     );
 
@@ -2708,9 +2813,11 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       left: pxToMm(10),
       top: pxToMm(paperHeight - 30),
       width: pxToMm(paperWidth - 20),
-      stroke: '#000000',
+      stroke: '#999999',
       strokeWidth: 1,
+      strokeDashArray: [5, 5],  // 虚线样式
       isFooter: true,
+      printVisible: false,  // 默认不打印（辅助线）
     };
 
     const line = new fabric.Line(
@@ -2718,6 +2825,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       {
         stroke: newElement.stroke,
         strokeWidth: newElement.strokeWidth,
+        strokeDashArray: newElement.strokeDashArray,  // 应用虚线样式
       }
     );
 
@@ -2827,9 +2935,21 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       return;
     }
 
-    // 有循环表格，计算需要的页数
+    // 找到页脚线的位置（查找标记为 isFooter 的元素）
+    const footerLineElements = currentTemplate.elements.filter(el => el.isFooter);
+    const footerLineY = footerLineElements.length > 0
+      ? Math.min(...footerLineElements.map(el => el.top))  // 取最小的 top 值作为页脚线位置
+      : paperHeightMm;  // 如果没有页脚线，使用纸张高度
+
+    console.log('📏 页脚线位置信息:', {
+      footerLineElements: footerLineElements.map(el => ({ id: el.id, top: el.top })),
+      footerLineY,
+      paperHeightMm
+    });
+
+    // 有循环表格，计算需要的页数（传入实际页脚线位置）
     const tableElement = loopTables[0]; // 假设只有一个循环表格
-    const { pageCount, rowsPerPage } = calculateTablePages(tableElement, data, mmToPx, currentTemplate.paper);
+    const { pageCount, rowsPerPage } = calculateTablePages(tableElement, data, mmToPx, currentTemplate.paper, footerLineY);
 
     console.log(`📄 需要打印 ${pageCount} 页`, rowsPerPage);
 
@@ -2837,6 +2957,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
     const pageSVGs: string[] = [];
 
     for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+      console.log(`\n📄 渲染第 ${pageIndex + 1} 页，共 ${pageCount} 页`);
       // 创建临时canvas
       const tempCanvas = new fabric.Canvas(document.createElement('canvas'), {
         width: paperSize.width,
@@ -2851,16 +2972,49 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
           return;
         }
 
+        // 检查是否在打印时显示（对于辅助线，printVisible 可能为 false）
+        if (element.printVisible === false) {
+          console.log(`  元素 ${element.id} - 跳过（printVisible=false）`);
+          return;
+        }
+
         // 判断元素是否在页眉/页脚区域
         const headerHeight = currentTemplate.paper.headerHeight || 0;
         const footerHeight = currentTemplate.paper.footerHeight || 0;
         const isInHeader = element.isHeader || (element.top < headerHeight);
         const isInFooter = element.isFooter || (element.top > paperHeightMm - footerHeight);
 
-        // 页眉页脚在所有页显示，其他元素只在第一页显示
-        if (!isInHeader && !isInFooter && pageIndex > 0) {
+        // 如果不打印页眉页脚，则跳过页眉页脚元素
+        if (!printHeaderFooter && (isInHeader || isInFooter)) {
           return;
         }
+
+        // 判断元素是否在页脚线下方（作为页脚在每一页显示）
+        const isBelowFooterLine = !isInHeader && !isInFooter && element.top >= footerLineY;
+
+        console.log(`  元素 ${element.id} (${element.type}):`, {
+          top: element.top,
+          isInHeader,
+          isInFooter,
+          isBelowFooterLine,
+          footerLineY,
+          pageIndex,
+          pageCount,
+          willRender: '判断中...'
+        });
+
+        // 页眉在所有页显示
+        // 页脚线下方的元素在所有页显示（作为页脚）
+        // 其他元素只在第一页显示
+        if (!isInHeader && !isBelowFooterLine) {
+          // 页脚线上方的普通元素只在第一页显示
+          if (pageIndex > 0) {
+            console.log(`    ❌ 跳过（页脚线上方元素只在第一页显示）`);
+            return;
+          }
+        }
+
+        console.log(`    ✅ 渲染该元素`);
 
         // 渲染元素
         let displayValue = element.binding || '';
@@ -3098,33 +3252,47 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
         <div className="print-toolbar">
           <div className="toolbar-section">
             <label>纸张大小：</label>
-            <select
-              value={currentTemplate.paper.size}
-              onChange={(e) => changePaperSize(e.target.value as PaperSizeKey)}
-            >
-              {Object.entries(PAPER_SIZES).map(([key, value]) => (
-                <option key={key} value={key}>
-                  {value.label}
-                </option>
-              ))}
-            </select>
+            <Select value={currentTemplate.paper.size} onValueChange={(value) => changePaperSize(value as PaperSizeKey)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PAPER_SIZES).map(([key, value]) => (
+                  <SelectItem key={key} value={key}>
+                    {value.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="toolbar-section">
-            <button onClick={toggleOrientation}>
+            <Button variant="outline" onClick={toggleOrientation}>
               {currentTemplate.paper.orientation === 'portrait' ? '纵向' : '横向'}
-            </button>
+            </Button>
           </div>
 
           <div className="toolbar-section">
-            <button onClick={deleteSelected}>删除选中</button>
-            <button onClick={saveTemplate}>保存模板</button>
+            <Button variant="outline" onClick={deleteSelected}>删除选中</Button>
+            <Button variant="outline" onClick={saveTemplate}>保存模板</Button>
           </div>
 
           <div className="toolbar-section">
-            <button onClick={handlePrint} className="print-button">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={printHeaderFooter}
+                onChange={(e) => setPrintHeaderFooter(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>打印页眉页脚</span>
+            </label>
+          </div>
+
+          <div className="toolbar-section">
+            <Button onClick={handlePrint} className="print-button">
               打印预览
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -3141,39 +3309,45 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
             <div className="component-panel">
               <div className="panel-header">
                 <div className="panel-tabs">
-                  <button
+                  <Button
+                    variant={leftPanelTab === 'components' ? "default" : "ghost"}
                     className={`tab-button ${leftPanelTab === 'components' ? 'active' : ''}`}
                     onClick={() => setLeftPanelTab('components')}
                   >
                     组件库
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant={leftPanelTab === 'properties' ? "default" : "ghost"}
                     className={`tab-button ${leftPanelTab === 'properties' ? 'active' : ''}`}
                     onClick={() => setLeftPanelTab('properties')}
                     disabled={!selectedElement}
                   >
                     组件配置
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant={leftPanelTab === 'data' ? "default" : "ghost"}
                     className={`tab-button ${leftPanelTab === 'data' ? 'active' : ''}`}
                     onClick={() => setLeftPanelTab('data')}
                   >
                     业务数据
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant={leftPanelTab === 'layers' ? "default" : "ghost"}
                     className={`tab-button ${leftPanelTab === 'layers' ? 'active' : ''}`}
                     onClick={() => setLeftPanelTab('layers')}
                   >
                     组件列表
-                  </button>
+                  </Button>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="panel-toggle"
                   onClick={() => setShowLeftPanel(false)}
                   title="收起"
                 >
                   «
-                </button>
+                </Button>
               </div>
 
               {/* 组件库标签页 */}
