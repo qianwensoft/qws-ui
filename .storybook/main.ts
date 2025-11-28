@@ -7,6 +7,7 @@ const config: StorybookConfig = {
     "@chromatic-com/storybook",
     "@storybook/addon-a11y",
     "@storybook/addon-docs",
+    "@storybook/addon-vitest",
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -23,7 +24,7 @@ const config: StorybookConfig = {
   staticDirs: ["../public"],
   async viteFinal(config, { configType }) {
     const isProduction = configType === 'PRODUCTION';
-    
+
     // Don't override mode - let Vite handle it naturally
     return {
       ...config,
