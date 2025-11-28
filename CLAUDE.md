@@ -8,6 +8,30 @@ QWS-UI is an enterprise-level data management platform built with React + TypeSc
 - **AdvancedTable**: A feature-rich table component with Excel-like editing, filtering, and export capabilities
 - **PrintDesigner**: A visual print template designer based on fabric.js
 
+## Claude Code Skills
+
+This project includes custom skills to help Claude Code understand terminology and component mappings:
+
+### AdvancedTable Mapping Skill
+**Location**: `.claude/skills/advanced-table-mapping/`
+
+This skill provides semantic mapping for the AdvancedTable component. When you mention any of these terms, Claude will automatically understand you're referring to AdvancedTable:
+
+- **表格** (table) → AdvancedTable
+- **数据表** (data table) → AdvancedTable
+- **表** (table/spreadsheet) → AdvancedTable
+- **数据管理** (data management) → AdvancedTable features
+
+The skill includes:
+- **SKILL.md**: Main skill configuration with component capabilities and usage instructions
+- **reference.md**: Technical reference with function locations, props interface, and troubleshooting
+- **examples.md**: 10+ comprehensive code examples covering basic to advanced use cases
+
+**Benefits:**
+- Automatic component suggestions when discussing table functionality
+- Context-aware guidance for Excel paste, filtering, and editing features
+- Quick access to relevant code examples and patterns
+
 ## Development Commands
 
 ### Running the Application
