@@ -46,7 +46,32 @@ npm test:coverage
 ```bash
 # Build for production
 npm run build
+
+# Build component registry
+npm run build:registry
 ```
+
+### Component Registry
+QWS-UI is organized as a shadcn-style component registry. Components can be installed in other projects using the shadcn CLI.
+
+```bash
+# Build registry after updating components
+npm run build:registry
+
+# This copies components from src/components to registry/default
+# and generates JSON files in public/r/
+```
+
+**Registry Structure:**
+- `registry/` - Component registry source files
+- `registry/default/` - Component implementations
+- `public/r/` - Generated registry JSON files
+- `scripts/build-registry.mjs` - Build script
+
+**Available Registry Components:**
+- `advanced-table` - Feature-rich table with editing, filtering, export
+- `print-designer` - Visual print template designer
+- `advanced-form` - Advanced form with TanStack Form
 
 ## Architecture Overview
 

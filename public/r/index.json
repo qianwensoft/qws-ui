@@ -1,0 +1,103 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "qws-ui",
+  "homepage": "https://github.com/yourusername/qws-ui",
+  "items": [
+    {
+      "name": "advanced-table",
+      "type": "registry:component",
+      "title": "Advanced Table",
+      "description": "Feature-rich table component with Excel-like editing, filtering, and export capabilities.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "select",
+        "dialog",
+        "dropdown-menu"
+      ],
+      "dependencies": [
+        "@tanstack/react-table@^8.10.7",
+        "@dnd-kit/core@^6.1.0",
+        "@dnd-kit/sortable@^7.0.2",
+        "@dnd-kit/utilities@^3.2.1",
+        "exceljs@^4.4.0",
+        "file-saver@^2.0.5",
+        "lucide-react"
+      ],
+      "devDependencies": [
+        "@types/file-saver@^2.0.7"
+      ],
+      "files": [
+        {
+          "path": "registry/default/advanced-table/advanced-table.tsx",
+          "type": "registry:component",
+          "target": "components/advanced-table.tsx"
+        },
+        {
+          "path": "registry/default/advanced-table/advanced-table.css",
+          "type": "registry:style",
+          "target": "components/advanced-table.css"
+        }
+      ]
+    },
+    {
+      "name": "print-designer",
+      "type": "registry:component",
+      "title": "Print Designer",
+      "description": "Visual print template designer based on fabric.js.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "select",
+        "card",
+        "advanced-table"
+      ],
+      "dependencies": [
+        "fabric@^6.9.0",
+        "lucide-react"
+      ],
+      "devDependencies": [
+        "@types/fabric@^5.3.10"
+      ],
+      "files": [
+        {
+          "path": "registry/default/print-designer/print-designer.tsx",
+          "type": "registry:component",
+          "target": "components/print-designer.tsx"
+        },
+        {
+          "path": "registry/default/print-designer/print-designer.css",
+          "type": "registry:style",
+          "target": "components/print-designer.css"
+        }
+      ]
+    },
+    {
+      "name": "advanced-form",
+      "type": "registry:component",
+      "title": "Advanced Form",
+      "description": "Advanced form component built with TanStack Form.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "card"
+      ],
+      "dependencies": [
+        "@tanstack/react-form@^1.26.0",
+        "lucide-react"
+      ],
+      "files": [
+        {
+          "path": "registry/default/advanced-form/advanced-form.tsx",
+          "type": "registry:component",
+          "target": "components/advanced-form.tsx"
+        },
+        {
+          "path": "registry/default/advanced-form/advanced-form.css",
+          "type": "registry:style",
+          "target": "components/advanced-form.css"
+        }
+      ]
+    }
+  ]
+}

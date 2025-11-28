@@ -78,6 +78,54 @@ npm test:coverage
 
 ---
 
+## 📦 作为 shadcn Registry 使用
+
+QWS-UI 现在支持作为 shadcn-style 组件注册表使用，您可以在任何项目中通过 shadcn CLI 安装组件！
+
+### 配置 Registry
+
+在您的项目中的 `components.json` 文件中添加 QWS-UI registry：
+
+```json
+{
+  "registries": {
+    "qws": "http://localhost:5173/r"
+  }
+}
+```
+
+### 安装组件
+
+使用 shadcn CLI 安装 QWS-UI 组件：
+
+```bash
+# 安装高级表格组件
+npx shadcn@latest add @qws/advanced-table
+
+# 安装打印设计器组件
+npx shadcn@latest add @qws/print-designer
+
+# 安装高级表单组件
+npx shadcn@latest add @qws/advanced-form
+```
+
+CLI 会自动：
+- ✅ 下载组件文件到您的项目
+- ✅ 安装所有必需的依赖
+- ✅ 安装 registry 依赖（shadcn/ui 基础组件）
+
+### 可用组件
+
+| 组件 | 名称 | 描述 |
+|------|------|------|
+| 📊 | `advanced-table` | 功能丰富的表格组件，支持编辑、过滤、导出 |
+| 🖨️ | `print-designer` | 可视化打印模板设计器 |
+| 📝 | `advanced-form` | 高级表单组件 |
+
+详细文档请查看 [registry/README.md](./registry/README.md)
+
+---
+
 ## 技术栈
 
 - **框架**: React 18 + TypeScript
@@ -247,6 +295,12 @@ function App() {
 
 ### 项目级更新
 
+**2025-11-28** - shadcn Registry 支持
+- 🎉 改造为 shadcn-style 组件注册表
+- 📦 支持通过 shadcn CLI 安装组件
+- 🔧 添加 `build:registry` 构建脚本
+- 📚 完善 registry 文档和使用指南
+
 **2025-11-26** - UI 框架升级
 - 🎨 集成 shadcn/ui 作为统一 UI 框架
 - ✨ 新增 AdvancedForm 组件
@@ -296,8 +350,18 @@ qws-ui/
 │   ├── lib/
 │   │   └── utils.ts               # 工具函数
 │   └── test/                      # 测试配置
+├── registry/                      # shadcn Registry
+│   ├── default/                   # 组件源文件
+│   │   ├── advanced-table/
+│   │   ├── print-designer/
+│   │   └── advanced-form/
+│   ├── registry.json              # Registry 配置
+│   └── README.md                  # Registry 文档
+├── scripts/
+│   └── build-registry.mjs         # Registry 构建脚本
 ├── .storybook/                    # Storybook 配置
-├── public/                        # 静态资源
+├── public/
+│   └── r/                         # Registry JSON 输出
 └── package.json
 ```
 
@@ -317,6 +381,19 @@ qws-ui/
 npx shadcn@latest add <component-name>
 # 示例: npx shadcn@latest add dropdown-menu
 ```
+
+### 构建 Registry
+
+更新组件后重新构建 registry：
+
+```bash
+npm run build:registry
+```
+
+这会：
+- 📦 复制组件从 `src/components` 到 `registry/default`
+- 📝 生成 JSON 配置到 `public/r/`
+- ✨ 更新 registry 索引文件
 
 ### 路径别名
 

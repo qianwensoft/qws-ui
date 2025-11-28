@@ -1,0 +1,27 @@
+{
+  "name": "advanced-form",
+  "type": "registry:component",
+  "title": "Advanced Form",
+  "description": "Advanced form component built with TanStack Form.",
+  "registryDependencies": [
+    "button",
+    "input",
+    "card"
+  ],
+  "dependencies": [
+    "@tanstack/react-form@^1.26.0",
+    "lucide-react"
+  ],
+  "files": [
+    {
+      "path": "registry/default/advanced-form/advanced-form.tsx",
+      "type": "registry:component",
+      "target": "components/advanced-form.tsx"
+    },
+    {
+      "path": "registry/default/advanced-form/advanced-form.css",
+      "type": "registry:style",
+      "target": "components/advanced-form.css"
+    }
+  ]
+}
