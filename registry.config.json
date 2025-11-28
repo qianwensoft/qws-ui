@@ -1,0 +1,7 @@
+{
+  "registryName": "qws-ui",
+  "homepage": "https://gitee.com/qianwensoft/qws-ui",
+  "baseUrl": "https://gitee.com/qianwensoft/qws-ui/raw/main",
+  "deployBranch": "main",
+  "deployMethod": "git-raw"
+}

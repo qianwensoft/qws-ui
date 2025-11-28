@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "qws-ui",
-  "homepage": "https://github.com/yourusername/qws-ui",
+  "homepage": "https://gitee.com/qianwensoft/qws-ui",
   "items": [
     {
       "name": "advanced-table",
@@ -29,12 +29,12 @@
       ],
       "files": [
         {
-          "path": "registry/default/advanced-table/advanced-table.tsx",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-table/advanced-table.tsx",
           "type": "registry:component",
           "target": "components/advanced-table.tsx"
         },
         {
-          "path": "registry/default/advanced-table/advanced-table.css",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-table/advanced-table.css",
           "type": "registry:style",
           "target": "components/advanced-table.css"
         }
@@ -61,12 +61,12 @@
       ],
       "files": [
         {
-          "path": "registry/default/print-designer/print-designer.tsx",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/print-designer/print-designer.tsx",
           "type": "registry:component",
           "target": "components/print-designer.tsx"
         },
         {
-          "path": "registry/default/print-designer/print-designer.css",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/print-designer/print-designer.css",
           "type": "registry:style",
           "target": "components/print-designer.css"
         }
@@ -88,12 +88,12 @@
       ],
       "files": [
         {
-          "path": "registry/default/advanced-form/advanced-form.tsx",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-form/advanced-form.tsx",
           "type": "registry:component",
           "target": "components/advanced-form.tsx"
         },
         {
-          "path": "registry/default/advanced-form/advanced-form.css",
+          "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-form/advanced-form.css",
           "type": "registry:style",
           "target": "components/advanced-form.css"
         }

@@ -15,7 +15,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "deploy:gitee": "bash scripts/deploy-gitee.sh",
+    "deploy": "npm run deploy:gitee"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

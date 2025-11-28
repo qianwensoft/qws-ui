@@ -6,6 +6,7 @@ import { AdvancedTable, type ColumnDef } from './AdvancedTable';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import './PrintDesigner.css';
 
 // 可拖动模态窗组件
@@ -449,7 +450,7 @@ const parseBinding = (binding: string, data: Record<string, any>): string => {
           stringParts.push(str);
           return `__STR${stringParts.length - 1}__`;
         });
-
+        
         // 计算数值部分
         const numericPart = temp.replace(/__STR\d+__/g, '');
         if (numericPart.trim()) {
@@ -1946,12 +1947,12 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
         ...prev,
         elements,
       };
-
+      
       // 延迟回调，避免在渲染期间更新状态
       setTimeout(() => {
         onTemplateChange?.(newTemplate);
       }, 0);
-
+      
       return newTemplate;
     });
   }, [onTemplateChange, pxToMm]);
@@ -2616,7 +2617,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
       console.log('✅ 对象已设置为激活状态');
       canvas.renderAll();
       console.log('✅ 画布已重新渲染');
-
+      
       // 延迟保存和重置标志，确保渲染完成
       setTimeout(() => {
         console.log('💾 延迟保存模板');
@@ -2701,7 +2702,7 @@ export const PrintDesigner: React.FC<PrintDesignerProps> = ({
             // 获取画布容器的边界（包含标尺）
             const canvasContainer = canvasContainerRef.current;
             const canvasElement = fabricCanvasRef.current.getElement();
-
+            
             if (canvasContainer && canvasElement) {
               const canvasRect = canvasElement.getBoundingClientRect();
 

@@ -19,12 +19,12 @@
   ],
   "files": [
     {
-      "path": "registry/default/print-designer/print-designer.tsx",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/print-designer/print-designer.tsx",
       "type": "registry:component",
       "target": "components/print-designer.tsx"
     },
     {
-      "path": "registry/default/print-designer/print-designer.css",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/print-designer/print-designer.css",
       "type": "registry:style",
       "target": "components/print-designer.css"
     }

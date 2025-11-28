@@ -24,12 +24,12 @@
   ],
   "files": [
     {
-      "path": "registry/default/advanced-table/advanced-table.tsx",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-table/advanced-table.tsx",
       "type": "registry:component",
       "target": "components/advanced-table.tsx"
     },
     {
-      "path": "registry/default/advanced-table/advanced-table.css",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-table/advanced-table.css",
       "type": "registry:style",
       "target": "components/advanced-table.css"
     }
