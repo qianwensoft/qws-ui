@@ -1,6 +1,6 @@
 {
   "name": "qws-ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "QWS-UI - Enterprise-level UI component library with AdvancedTable and PrintDesigner",
   "type": "module",
   "scripts": {
