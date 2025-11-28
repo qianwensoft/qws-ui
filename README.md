@@ -9,6 +9,8 @@
 [![React](https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
+**[📖 在线文档](https://qianwensoft.gitee.io/qws-ui)** | **[🚀 快速开始](#-快速开始)** | **[📦 安装组件](#-安装组件)**
+
 </div>
 
 ---
