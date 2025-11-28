@@ -1,7 +1,7 @@
 {
-  "name": "qws-platform-v2",
+  "name": "qws-ui",
   "version": "1.0.0",
-  "description": "Advanced table component with Excel paste, column drag & drop, resizing, and visibility controls",
+  "description": "QWS-UI - Enterprise-level UI component library with AdvancedTable and PrintDesigner",
   "type": "module",
   "scripts": {
     "dev": "vite",
