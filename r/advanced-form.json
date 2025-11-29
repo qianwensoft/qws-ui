@@ -14,12 +14,12 @@
   ],
   "files": [
     {
-      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-form/advanced-form.tsx",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/prd/registry/default/advanced-form/advanced-form.tsx",
       "type": "registry:component",
       "target": "components/advanced-form.tsx"
     },
     {
-      "path": "https://gitee.com/qianwensoft/qws-ui/raw/main/registry/default/advanced-form/advanced-form.css",
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/prd/registry/default/advanced-form/advanced-form.css",
       "type": "registry:style",
       "target": "components/advanced-form.css"
     }
