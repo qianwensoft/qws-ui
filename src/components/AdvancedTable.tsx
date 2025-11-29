@@ -28,7 +28,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, ChevronUp, ChevronDown, Download } from 'lucide-react';
+import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, ChevronUp, ChevronDown, Download, ArrowUpDown, ArrowUp, ArrowDown, Hash, Type } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Button } from './ui/button';
@@ -47,6 +47,23 @@ declare module '@tanstack/react-table' {
 
 // 过滤操作符类型
 export type FilterOperator = 'equals' | 'notEquals' | 'greaterThan' | 'lessThan' | 'greaterThanOrEqual' | 'lessThanOrEqual' | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'isEmpty' | 'isNotEmpty';
+
+// 排序类型
+export type SortType = 'alpha' | 'numeric';  // alpha: 字母排序, numeric: 数字排序
+
+// 排序方向
+export type SortDirection = 'asc' | 'desc' | null;  // asc: 升序, desc: 降序, null: 不排序
+
+// 排序配置
+export interface SortConfig {
+  type: SortType;
+  direction: SortDirection;
+}
+
+// 列的排序配置集合
+export interface ColumnSorts {
+  [columnId: string]: SortConfig;
+}
 
 // 过滤条件接口
 export interface FilterCondition {
@@ -183,6 +200,8 @@ interface FilterPanelProps {
   columnHeader: string;
   filters: FilterCondition[];
   onFiltersChange: (filters: FilterCondition[]) => void;
+  sortConfig?: SortConfig;  // 当前列的排序配置
+  onSortChange?: (config: SortConfig) => void;  // 排序配置变更回调
   onClose: () => void;
   position: { top: number; left: number };
 }
@@ -191,6 +210,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   columnHeader,
   filters,
   onFiltersChange,
+  sortConfig,
+  onSortChange,
   onClose,
   position,
 }) => {
@@ -281,6 +302,44 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     onFiltersChange([]);
   };
 
+  // 处理排序类型变更
+  const handleSortTypeChange = (type: SortType) => {
+    if (onSortChange) {
+      onSortChange({
+        type,
+        direction: sortConfig?.direction || 'asc',
+      });
+    }
+  };
+
+  // 处理排序方向变更
+  const handleSortDirectionChange = () => {
+    if (onSortChange && sortConfig) {
+      let newDirection: SortDirection;
+      if (sortConfig.direction === null) {
+        newDirection = 'asc';
+      } else if (sortConfig.direction === 'asc') {
+        newDirection = 'desc';
+      } else {
+        newDirection = null;
+      }
+      onSortChange({
+        ...sortConfig,
+        direction: newDirection,
+      });
+    }
+  };
+
+  // 清除排序
+  const handleClearSort = () => {
+    if (onSortChange) {
+      onSortChange({
+        type: 'alpha',
+        direction: null,
+      });
+    }
+  };
+
   return (
     <div
       ref={panelRef}
@@ -299,6 +358,60 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         </Button>
       </div>
       <div className="filter-panel-body">
+        {/* 排序区域 - 移到最上面 */}
+        {onSortChange && (
+          <div className="filter-sort-section">
+            <div className="filter-sort-controls">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`filter-sort-type-button ${sortConfig?.type === 'alpha' ? 'sort-active' : ''}`}
+                onClick={() => handleSortTypeChange('alpha')}
+                title="字母排序 (A-Z)"
+              >
+                <Type size={10} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`filter-sort-type-button ${sortConfig?.type === 'numeric' ? 'sort-active' : ''}`}
+                onClick={() => handleSortTypeChange('numeric')}
+                title="数字排序 (强制转为数字)"
+              >
+                <Hash size={10} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`filter-sort-direction-button ${sortConfig?.direction ? 'sort-active' : ''}`}
+                onClick={handleSortDirectionChange}
+                title={
+                  sortConfig?.direction === null
+                    ? '点击启用排序'
+                    : sortConfig?.direction === 'asc'
+                    ? '升序 (点击切换为降序)'
+                    : '降序 (点击取消排序)'
+                }
+              >
+                {sortConfig?.direction === null && <ArrowUpDown size={10} />}
+                {sortConfig?.direction === 'asc' && <ArrowUp size={10} />}
+                {sortConfig?.direction === 'desc' && <ArrowDown size={10} />}
+              </Button>
+              {sortConfig?.direction && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="filter-sort-clear-button"
+                  onClick={handleClearSort}
+                  title="清除排序"
+                >
+                  <X size={10} />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {filters.length === 0 ? (
           <div className="filter-empty-state">
             <p>暂无过滤条件</p>
@@ -1219,6 +1332,7 @@ export function AdvancedTable<T extends Record<string, any>>({
     columnId: string;
   } | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
+  const [columnSorts, setColumnSorts] = useState<ColumnSorts>({});  // 列排序配置
   const [openFilterPanel, setOpenFilterPanel] = useState<{
     columnId: string;
     position: { top: number; left: number };
@@ -1348,14 +1462,54 @@ export function AdvancedTable<T extends Record<string, any>>({
     const hasActiveFilters = Object.keys(columnFilters).some(
       (key) => columnFilters[key] && columnFilters[key].length > 0
     );
-    return hasActiveFilters ? filteredData : tableData;
-  }, [tableData, filteredData, columnFilters]);
+    let result = hasActiveFilters ? filteredData : tableData;
+
+    // 应用排序
+    Object.keys(columnSorts).forEach((columnId) => {
+      const sortConfig = columnSorts[columnId];
+      if (sortConfig && sortConfig.direction) {
+        result = [...result].sort((a, b) => {
+          const aValue = a[columnId];
+          const bValue = b[columnId];
+
+          // 处理 null/undefined 值
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+
+          let comparison = 0;
+
+          if (sortConfig.type === 'numeric') {
+            // 数字排序：强制转换为数字
+            const aNum = Number(aValue);
+            const bNum = Number(bValue);
+
+            // 处理 NaN
+            if (isNaN(aNum) && isNaN(bNum)) comparison = 0;
+            else if (isNaN(aNum)) comparison = 1;
+            else if (isNaN(bNum)) comparison = -1;
+            else comparison = aNum - bNum;
+          } else {
+            // 字母排序：转换为字符串后比较
+            const aStr = String(aValue).toLowerCase();
+            const bStr = String(bValue).toLowerCase();
+            comparison = aStr.localeCompare(bStr);
+          }
+
+          // 根据排序方向返回结果
+          return sortConfig.direction === 'asc' ? comparison : -comparison;
+        });
+      }
+    });
+
+    return result;
+  }, [tableData, filteredData, columnFilters, columnSorts]);
 
   // 处理过滤条件变化
   const handleFiltersChange = useCallback(
     async (columnId: string, filters: FilterCondition[]) => {
       const newColumnFilters: ColumnFilters = { ...columnFilters };
-      
+
       if (filters.length > 0) {
         newColumnFilters[columnId] = filters;
       } else {
@@ -1371,6 +1525,23 @@ export function AdvancedTable<T extends Record<string, any>>({
       }
     },
     [columnFilters, onFilterChange]
+  );
+
+  // 处理排序配置变化
+  const handleSortChange = useCallback(
+    (columnId: string, config: SortConfig) => {
+      setColumnSorts((prev) => {
+        const newSorts = { ...prev };
+        if (config.direction === null) {
+          // 清除排序
+          delete newSorts[columnId];
+        } else {
+          newSorts[columnId] = config;
+        }
+        return newSorts;
+      });
+    },
+    []
   );
 
   // 处理过滤器按钮点击
@@ -2314,6 +2485,8 @@ export function AdvancedTable<T extends Record<string, any>>({
           onFiltersChange={(filters) =>
             handleFiltersChange(openFilterPanel.columnId, filters)
           }
+          sortConfig={columnSorts[openFilterPanel.columnId]}
+          onSortChange={(config) => handleSortChange(openFilterPanel.columnId, config)}
           onClose={() => setOpenFilterPanel(null)}
           position={openFilterPanel.position}
         />

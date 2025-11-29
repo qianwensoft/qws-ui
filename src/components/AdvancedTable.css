@@ -935,6 +935,60 @@
   color: #ff4d4f;
 }
 
+/* 排序区域样式 - 紧凑版本，位于顶部 */
+.filter-sort-section {
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.filter-sort-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.filter-sort-type-button,
+.filter-sort-direction-button,
+.filter-sort-clear-button {
+  padding: 0;
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 4px;
+  border: none;
+}
+
+/* 激活状态 - 与过滤器颜色同步 */
+.filter-sort-type-button.sort-active,
+.filter-sort-direction-button.sort-active {
+  color: #1890ff;
+  background: #e6f7ff;
+  border: none;
+}
+
+.filter-sort-type-button.sort-active:hover,
+.filter-sort-direction-button.sort-active:hover {
+  background: #bae7ff;
+  border: none;
+}
+
+/* 清除按钮特殊样式 */
+.filter-sort-clear-button {
+  color: #8c8c8c;
+  border: none;
+}
+
+.filter-sort-clear-button:hover {
+  color: #ff4d4f;
+  background-color: #fff1f0;
+  border: none;
+}
+
 /* 分页组件样式 */
 .pagination-container {
   display: flex;
