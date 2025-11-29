@@ -11,6 +11,11 @@
 
 **[📖 在线文档](https://qianwensoft.gitee.io/qws-ui)** | **[🚀 快速开始](#-快速开始)** | **[📦 安装组件](#-安装组件)**
 
+### 🌍 仓库镜像
+
+[![Gitee](https://img.shields.io/badge/Gitee-qws--ui-C71D23?style=flat-square&logo=gitee)](https://gitee.com/qianwensoft/qws-ui)
+[![GitHub](https://img.shields.io/badge/GitHub-qws--ui-181717?style=flat-square&logo=github)](https://github.com/qianwensoft/qws-ui)
+
 </div>
 
 ---
@@ -155,15 +160,15 @@ npm test:coverage
 
 ## 🌿 分支策略
 
-项目采用三分支策略管理代码和部署：
+项目采用三分支策略管理代码和部署，**同时支持 Gitee 和 GitHub 双平台**：
 
 ### 分支说明
 
-| 分支 | 用途 | 内容 | URL |
-|------|------|------|-----|
-| **main** | 主开发分支 | 完整源代码、配置、文档 | - |
-| **prd** | 生产发布分支 | 仅包含组件注册表文件 | [https://gitee.com/qianwensoft/qws-ui/raw/prd/r](https://gitee.com/qianwensoft/qws-ui/raw/prd/r) |
-| **storybook-pages** | 文档分支 | Storybook 静态站点 | [https://qianwensoft.gitee.io/qws-ui](https://qianwensoft.gitee.io/qws-ui) |
+| 分支 | 用途 | 内容 | Gitee | GitHub |
+|------|------|------|-------|--------|
+| **main** | 主开发分支 | 完整源代码、配置、文档 | ✅ | ✅ |
+| **prd** | 生产发布分支 | 仅包含组件注册表文件 | [Raw URL](https://gitee.com/qianwensoft/qws-ui/raw/prd/r) | [Raw URL](https://raw.githubusercontent.com/qianwensoft/qws-ui/prd/r) |
+| **storybook-pages** | 文档分支 | Storybook 静态站点 | [Gitee Pages](https://qianwensoft.gitee.io/qws-ui) | [GitHub Pages](https://qianwensoft.github.io/qws-ui) |
 
 ### 工作流程
 
@@ -174,25 +179,35 @@ git checkout main
 # 开发、测试、提交
 git add .
 git commit -m "feat: 新功能"
+# 一次推送，同时更新 Gitee 和 GitHub
 git push origin main
 ```
 
 **发布组件注册表**：
 ```bash
-# 部署到 prd 分支
+# 部署到 prd 分支（自动推送到双平台）
 npm run deploy:registry
 ```
 
 **发布 Storybook 文档**：
 ```bash
-# 部署到 storybook-pages 分支
+# 部署到 storybook-pages 分支（自动推送到双平台）
 npm run deploy:storybook
 ```
 
-### Gitee Pages 配置
+### 双平台配置
 
-项目使用 Gitee Pages 提供以下服务：
+项目已配置自动推送到 Gitee 和 GitHub：
 
+**远程仓库配置**：
+- 🔹 Gitee: `git@gitee.com:qianwensoft/qws-ui.git`
+- 🔹 GitHub: `git@github.com:qianwensoft/qws-ui.git`
+
+**一键双推**：执行 `git push origin <branch>` 会同时推送到两个平台
+
+### 服务部署
+
+#### Gitee Pages
 1. **组件注册表**（prd 分支）
    - URL: `https://gitee.com/qianwensoft/qws-ui/raw/prd/r`
    - 用途: shadcn CLI 安装组件
@@ -200,6 +215,15 @@ npm run deploy:storybook
 2. **在线文档**（storybook-pages 分支）
    - URL: `https://qianwensoft.gitee.io/qws-ui`
    - 用途: 查看组件演示和使用文档
+
+#### GitHub Pages（可选配置）
+1. **组件注册表**（prd 分支）
+   - URL: `https://raw.githubusercontent.com/qianwensoft/qws-ui/prd/r`
+   - 用途: 国际用户访问
+
+2. **在线文档**（storybook-pages 分支）
+   - URL: `https://qianwensoft.github.io/qws-ui`（需在 GitHub 设置中启用）
+   - 用途: 国际用户访问
 
 ---
 
