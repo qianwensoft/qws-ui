@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { AdvancedTable, type DataChangeInfo, type OnFilterChange } from '../components/AdvancedTable';
 import type { ColumnDef } from '@tanstack/react-table';
-import '../components/AdvancedTable.css';
+import '../components/advanced-table.css';
 
 // 示例数据类型
 interface Person {

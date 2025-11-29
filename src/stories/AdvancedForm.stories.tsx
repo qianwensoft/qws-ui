@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { AdvancedForm, validators, type FieldConfig, type FormSubmitResult } from '../components/AdvancedForm';
-import '../components/AdvancedForm.css';
+import '../components/advanced-form.css';
 
 // 用户注册表单数据类型
 interface UserRegisterForm {
