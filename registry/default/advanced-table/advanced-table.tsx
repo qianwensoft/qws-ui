@@ -36,7 +36,7 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import './AdvancedTable.css';
+import './advanced-table.css';
 
 // 扩展 @tanstack/react-table 的 ColumnMeta 类型
 declare module '@tanstack/react-table' {
