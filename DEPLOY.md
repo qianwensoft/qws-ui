@@ -1,6 +1,20 @@
 # 组件注册表部署指南
 
-本指南介绍如何将 QWS-UI 组件注册表部署到 Gitee Pages，使其他项目可以通过 shadcn CLI 安装您的组件。
+本指南介绍如何将 QWS-UI 组件注册表部署到 Gitee，使其他项目可以通过 shadcn CLI 安装您的组件。
+
+## 分支策略
+
+项目使用以下分支进行管理和部署：
+
+| 分支 | 用途 | 内容 |
+|------|------|------|
+| **main** | 主开发分支 | 完整源代码、配置、文档 |
+| **prd** | 生产发布分支 | 仅包含组件注册表文件（registry/ 和 r/） |
+| **storybook-pages** | 文档分支 | Storybook 静态站点 |
+
+**部署方式**：
+- 组件注册表使用 **Git Raw URL** 方式：`https://gitee.com/qianwensoft/qws-ui/raw/prd/r`
+- Storybook 使用 **Gitee Pages** 方式：`https://qianwensoft.gitee.io/qws-ui`
 
 ## 目录
 
@@ -20,19 +34,19 @@
 ```json
 {
   "registryName": "qws-ui",
-  "homepage": "https://gitee.com/yourname/qws-ui",
-  "baseUrl": "https://yourname.gitee.io/qws-ui",
-  "deployBranch": "gitee-pages",
-  "deployMethod": "gitee-pages"
+  "homepage": "https://gitee.com/qianwensoft/qws-ui",
+  "baseUrl": "https://gitee.com/qianwensoft/qws-ui/raw/prd",
+  "deployBranch": "prd",
+  "deployMethod": "git-raw"
 }
 ```
 
 **字段说明：**
 - `registryName`: 注册表名称，建议与项目名称一致
-- `homepage`: 项目主页地址（GitHub/Gitee 仓库地址）
-- `baseUrl`: Gitee Pages 的访问地址（部署后的静态站点地址）
-- `deployBranch`: 部署使用的分支名称（默认 `gitee-pages`）
-- `deployMethod`: 部署方式（目前仅支持 `gitee-pages`）
+- `homepage`: 项目主页地址（Gitee 仓库地址）
+- `baseUrl`: Gitee Raw 文件访问地址（指向 prd 分支）
+- `deployBranch`: 部署使用的分支名称（prd 分支）
+- `deployMethod`: 部署方式（`git-raw` 使用 Git Raw URL）
 
 ### 2. 一键部署
 
@@ -47,15 +61,21 @@ npm run deploy
 4. ✓ 提交更改
 5. ✓ 推送到 Gitee
 
-### 3. 启用 Gitee Pages
+### 3. 验证部署
 
-1. 访问您的 Gitee 仓库
-2. 进入 **服务** → **Gitee Pages**
-3. 选择部署分支：`gitee-pages`
-4. 选择部署目录：根目录 `/`
-5. 点击 **启动** 或 **更新**
+部署完成后，验证组件注册表是否可访问：
 
-等待几分钟后，您的组件注册表将在 `https://yourname.gitee.io/qws-ui` 可访问。
+1. **访问注册表索引**：
+   ```
+   https://gitee.com/qianwensoft/qws-ui/raw/prd/r/index.json
+   ```
+
+2. **访问组件 JSON**：
+   ```
+   https://gitee.com/qianwensoft/qws-ui/raw/prd/r/advanced-table.json
+   ```
+
+如果能正常访问并看到 JSON 数据，说明部署成功！
 
 ## 配置说明
 
@@ -70,10 +90,10 @@ npm run deploy
   "$schema": "https://json-schema.org/draft-07/schema#",
   "description": "QWS-UI 组件注册表配置文件",
   "registryName": "qws-ui",
-  "homepage": "https://gitee.com/yourname/qws-ui",
-  "baseUrl": "https://yourname.gitee.io/qws-ui",
-  "deployBranch": "gitee-pages",
-  "deployMethod": "gitee-pages"
+  "homepage": "https://gitee.com/qianwensoft/qws-ui",
+  "baseUrl": "https://gitee.com/qianwensoft/qws-ui/raw/prd",
+  "deployBranch": "prd",
+  "deployMethod": "git-raw"
 }
 ```
 
@@ -83,10 +103,10 @@ npm run deploy
 
 ```bash
 # 设置 Base URL
-export REGISTRY_BASE_URL="https://yourname.gitee.io/qws-ui"
+export REGISTRY_BASE_URL="https://gitee.com/qianwensoft/qws-ui/raw/prd"
 
 # 设置主页地址
-export REGISTRY_HOMEPAGE="https://gitee.com/yourname/qws-ui"
+export REGISTRY_HOMEPAGE="https://gitee.com/qianwensoft/qws-ui"
 
 # 设置注册表名称
 export REGISTRY_NAME="qws-ui"

@@ -153,6 +153,56 @@ npm test:coverage
 
 ---
 
+## 🌿 分支策略
+
+项目采用三分支策略管理代码和部署：
+
+### 分支说明
+
+| 分支 | 用途 | 内容 | URL |
+|------|------|------|-----|
+| **main** | 主开发分支 | 完整源代码、配置、文档 | - |
+| **prd** | 生产发布分支 | 仅包含组件注册表文件 | [https://gitee.com/qianwensoft/qws-ui/raw/prd/r](https://gitee.com/qianwensoft/qws-ui/raw/prd/r) |
+| **storybook-pages** | 文档分支 | Storybook 静态站点 | [https://qianwensoft.gitee.io/qws-ui](https://qianwensoft.gitee.io/qws-ui) |
+
+### 工作流程
+
+**日常开发**：
+```bash
+# 在 main 分支开发
+git checkout main
+# 开发、测试、提交
+git add .
+git commit -m "feat: 新功能"
+git push origin main
+```
+
+**发布组件注册表**：
+```bash
+# 部署到 prd 分支
+npm run deploy:registry
+```
+
+**发布 Storybook 文档**：
+```bash
+# 部署到 storybook-pages 分支
+npm run deploy:storybook
+```
+
+### Gitee Pages 配置
+
+项目使用 Gitee Pages 提供以下服务：
+
+1. **组件注册表**（prd 分支）
+   - URL: `https://gitee.com/qianwensoft/qws-ui/raw/prd/r`
+   - 用途: shadcn CLI 安装组件
+
+2. **在线文档**（storybook-pages 分支）
+   - URL: `https://qianwensoft.gitee.io/qws-ui`
+   - 用途: 查看组件演示和使用文档
+
+---
+
 ## 📦 作为 shadcn Registry 使用
 
 QWS-UI 现在支持作为 shadcn-style 组件注册表使用，您可以在任何项目中通过 shadcn CLI 安装组件！
@@ -164,7 +214,7 @@ QWS-UI 现在支持作为 shadcn-style 组件注册表使用，您可以在任�
 ```json
 {
   "registries": {
-    "qws": "http://localhost:5173/r"
+    "qws": "https://gitee.com/qianwensoft/qws-ui/raw/prd/r"
   }
 }
 ```
