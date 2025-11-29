@@ -58,7 +58,7 @@ const generateFilePath = (relativePath) => {
 const components = [
   {
     name: 'advanced-table',
-    files: ['AdvancedTable.tsx', 'AdvancedTable.css'],
+    files: ['AdvancedTable.tsx', 'advanced-table.css'],
     config: {
       name: 'advanced-table',
       type: 'registry:component',
@@ -91,7 +91,7 @@ const components = [
   },
   {
     name: 'print-designer',
-    files: ['PrintDesigner.tsx', 'PrintDesigner.css'],
+    files: ['PrintDesigner.tsx', 'print-designer.css'],
     config: {
       name: 'print-designer',
       type: 'registry:component',
@@ -116,7 +116,7 @@ const components = [
   },
   {
     name: 'advanced-form',
-    files: ['AdvancedForm.tsx', 'AdvancedForm.css'],
+    files: ['AdvancedForm.tsx', 'advanced-form.css'],
     config: {
       name: 'advanced-form',
       type: 'registry:component',
