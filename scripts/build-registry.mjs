@@ -145,7 +145,8 @@ console.log('📦 Copying component files...');
 components.forEach(({ name, files }) => {
   files.forEach(file => {
     const srcPath = join(rootDir, 'src/components', file);
-    const destFileName = file.toLowerCase().replace(/([A-Z])/g, '-$1').replace(/^-/, '');
+    // Convert AdvancedTable.tsx -> advanced-table.tsx
+    const destFileName = file.replace(/([A-Z])/g, '-$1').replace(/^-/, '').toLowerCase();
     const destPath = join(rootDir, 'registry/default', name, destFileName);
 
     try {
