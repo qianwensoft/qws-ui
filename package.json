@@ -3,6 +3,14 @@
   "version": "1.1.0",
   "description": "QWS-UI - Enterprise-level UI component library with AdvancedTable and PrintDesigner",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qianwensoft/qws-ui.git"
+  },
+  "homepage": "https://github.com/qianwensoft/qws-ui#readme",
+  "bugs": {
+    "url": "https://github.com/qianwensoft/qws-ui/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
