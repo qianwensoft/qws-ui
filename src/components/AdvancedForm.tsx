@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from '@tanstack/react-form';
 import type { FieldApi, FormApi, DeepKeys, DeepValue } from '@tanstack/react-form';
-import './AdvancedForm.css';
+import './advanced-form.css';
 
 // 字段配置类型
 export interface FieldConfig<TFormData> {
