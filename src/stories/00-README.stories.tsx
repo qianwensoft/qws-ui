@@ -215,8 +215,8 @@ npx shadcn@latest add @qws/advanced-form`}
 };
 
 const meta: Meta = {
-  title: '0开始/项目概览',
-  tags: ['autodocs'],
+  title: 'AA项目概览',
+  tags: ['Default'],
 };
 
 export default meta;
