@@ -208,18 +208,47 @@
   position: relative;
   background: #fafafa;
   border: 1px solid #e8e8e8;
-  padding: 0;
+  padding: 12px 8px;
+  padding-right: 6px; /* 为 resize-handle 留出空间 */
   text-align: left;
   font-weight: 500;
   user-select: none;
 }
 
+/* 固定列样式 */
+.table-header-cell.fixed-left,
+.table-header-cell.fixed-right {
+  position: sticky;
+  z-index: 3;
+  background: #fafafa;
+}
+
+.table-header-cell.fixed-left::after,
+.table-header-cell.fixed-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  width: 10px;
+  pointer-events: none;
+  transition: box-shadow 0.3s;
+}
+
+.table-header-cell.fixed-left::after {
+  right: -10px;
+  box-shadow: inset 10px 0 8px -8px rgba(0, 0, 0, 0.15);
+}
+
+.table-header-cell.fixed-right::after {
+  left: -10px;
+  box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.15);
+}
+
 .header-content {
   display: flex;
   align-items: center;
-  padding: 12px 8px;
+  padding: 0;
   position: relative;
-  padding-right: 6px; /* 为 resize-handle 留出空间 */
   gap: 8px;
 }
 
@@ -274,6 +303,12 @@
   margin-right: -3px; /* 扩展可点击区域 */
 }
 
+/* 固定列的 resize-handle 不应该超出边界 */
+.table-header-cell.fixed-left .resize-handle,
+.table-header-cell.fixed-right .resize-handle {
+  margin-right: 0;
+}
+
 .resize-handle:hover {
   background: #1890ff;
   opacity: 0.6;
@@ -300,6 +335,35 @@
   transition: background-color 0.15s;
   cursor: cell;
   user-select: none;  /* 禁止拖动选择时选中文本 */
+}
+
+/* 固定列的单元格样式 */
+.table-cell.fixed-left,
+.table-cell.fixed-right {
+  position: sticky;
+  z-index: 2;
+  background: white;
+}
+
+.table-cell.fixed-left::after,
+.table-cell.fixed-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  width: 10px;
+  pointer-events: none;
+  transition: box-shadow 0.3s;
+}
+
+.table-cell.fixed-left::after {
+  right: -10px;
+  box-shadow: inset 10px 0 8px -8px rgba(0, 0, 0, 0.15);
+}
+
+.table-cell.fixed-right::after {
+  left: -10px;
+  box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.15);
 }
 
 .table-cell:hover {

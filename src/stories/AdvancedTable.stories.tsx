@@ -1127,3 +1127,222 @@ export const ToolbarButtons: Story = {
   },
 };
 
+// 11. 固定列示例
+export const FixedColumns: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+### 固定列功能
+
+支持将指定列固定在表格左侧或右侧，横向滚动时固定列保持可见。
+
+**配置方式：**
+在列定义的 \`meta\` 中设置 \`fixed\` 字段：
+- \`fixed: 'left'\` - 固定在左侧
+- \`fixed: 'right'\` - 固定在右侧
+
+**功能特点：**
+- 支持多列固定（按顺序累积）
+- 固定列带阴影效果，视觉区分更明显
+- 与其他功能完全兼容（编辑、过滤、排序等）
+- 响应式布局，自动计算固定位置
+
+**使用场景：**
+- 固定序号列、操作列等关键列
+- 宽表格横向滚动时保持重要列可见
+- 数据对比分析时固定参照列
+
+**示例配置：**
+\`\`\`typescript
+{
+  id: 'id',
+  header: 'ID',
+  meta: { fixed: 'left' }  // 固定在左侧
+}
+\`\`\`
+        `,
+      },
+    },
+  },
+  render: () => {
+    const [data, setData] = useState<Person[]>(generateData(20));
+
+    const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
+      setData(newData);
+      if (changeInfo) {
+        console.log('数据变更:', changeInfo);
+      }
+    };
+
+    // 带固定列的列定义
+    const fixedColumns: ColumnDef<Person>[] = [
+      {
+        id: 'id',
+        accessorKey: 'id',
+        header: 'ID',
+        size: 80,
+        meta: {
+          fixed: 'left',  // 固定在左侧
+        },
+      },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: '姓名',
+        size: 120,
+        meta: {
+          fixed: 'left',  // 固定在左侧
+        },
+      },
+      {
+        id: 'age',
+        accessorKey: 'age',
+        header: '年龄',
+        size: 120,
+        meta: {
+          type: 'number',
+        },
+      },
+      {
+        id: 'email',
+        accessorKey: 'email',
+        header: '邮箱地址',
+        size: 250,
+      },
+      {
+        id: 'department',
+        accessorKey: 'department',
+        header: '所属部门',
+        size: 150,
+      },
+      {
+        id: 'salary',
+        accessorKey: 'salary',
+        header: '薪资',
+        size: 150,
+        cell: ({ getValue }) => {
+          const value = getValue() as number;
+          return `¥${value.toLocaleString()}`;
+        },
+        meta: {
+          type: 'number',
+        },
+      },
+      {
+        id: 'joinDate',
+        accessorKey: 'joinDate',
+        header: '入职日期',
+        size: 150,
+      },
+      // 新增列以显示滚动条
+      {
+        id: 'phone',
+        accessorKey: 'email',  // 复用email数据作为示例
+        header: '联系电话',
+        size: 150,
+        cell: ({ row }) => {
+          return `138${String(row.index).padStart(8, '0')}`;
+        },
+      },
+      {
+        id: 'address',
+        accessorKey: 'department',  // 复用department数据
+        header: '家庭住址',
+        size: 200,
+        cell: ({ getValue }) => {
+          return `北京市朝阳区${getValue()}大厦`;
+        },
+      },
+      {
+        id: 'education',
+        accessorKey: 'department',
+        header: '学历',
+        size: 120,
+        cell: () => {
+          const educations = ['本科', '硕士', '博士'];
+          return educations[Math.floor(Math.random() * educations.length)];
+        },
+      },
+      {
+        id: 'position',
+        accessorKey: 'department',
+        header: '职位',
+        size: 150,
+        cell: ({ getValue }) => {
+          const positions = ['工程师', '高级工程师', '技术专家', '经理', '总监'];
+          return positions[Math.floor(Math.random() * positions.length)];
+        },
+      },
+      {
+        id: 'project',
+        accessorKey: 'department',
+        header: '当前项目',
+        size: 200,
+        cell: ({ row }) => {
+          return `项目-${String(row.index + 1).padStart(3, '0')}`;
+        },
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: '状态',
+        size: 120,
+        meta: {
+          fixed: 'right',  // 固定在右侧
+        },
+      },
+    ];
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>固定列示例</h2>
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #91caff'
+        }}>
+          <h4 style={{ marginTop: 0 }}>固定列配置：</h4>
+          <ul style={{ marginBottom: 0 }}>
+            <li><strong>左侧固定：</strong>ID 列、姓名列（始终可见）</li>
+            <li><strong>右侧固定：</strong>状态列（始终可见）</li>
+            <li><strong>可滚动列：</strong>年龄、邮箱、部门、薪资、入职日期、联系电话、家庭住址、学历、职位、当前项目</li>
+            <li><strong>总列数：</strong>13 列，表格总宽度约 1900px，确保能看到横向滚动效果</li>
+          </ul>
+        </div>
+
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #ffd591'
+        }}>
+          <h4 style={{ marginTop: 0 }}>使用提示：</h4>
+          <p style={{ margin: 0 }}>
+            👉 <strong>横向滚动表格</strong>，观察 ID、姓名列和状态列始终保持固定位置<br/>
+            👉 固定列带有<strong>阴影效果</strong>，与滚动区域视觉分离<br/>
+            👉 所有交互功能（编辑、过滤、选择）在固定列上<strong>正常工作</strong>
+          </p>
+        </div>
+
+        <AdvancedTable
+          data={data}
+          columns={fixedColumns}
+          onDataChange={handleDataChange}
+          enableEditing={true}
+          editTriggerMode="click"
+          autoSave={true}
+          enablePaste={true}
+          enableFiltering={true}
+          enableExport={true}
+          enableColumnReorder={false}
+        />
+      </div>
+    );
+  },
+};
+
