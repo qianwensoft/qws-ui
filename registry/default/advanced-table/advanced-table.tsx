@@ -42,6 +42,7 @@ import './advanced-table.css';
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
     editable?: boolean;  // 列级别的编辑开关，默认 true
+    fixed?: 'left' | 'right';  // 列固定位置：left-固定在左侧，right-固定在右侧
   }
 }
 
@@ -500,6 +501,7 @@ interface DraggableColumnHeaderProps {
   onHeaderClick?: (columnIndex: number) => void;  // 表头点击回调
   columnIndex?: number;  // 列索引
   isColumnSelected?: boolean;  // 列是否被选中
+  fixedPosition?: number;  // 固定列的位置（left/right 的累积宽度）
 }
 
 const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
@@ -514,6 +516,7 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   onHeaderClick,
   columnIndex = 0,
   isColumnSelected = false,
+  fixedPosition,
 }) => {
   const {
     attributes,
@@ -526,10 +529,17 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
     id: column.id,
   });
 
-  const style = {
+  const fixedType = column.columnDef.meta?.fixed;
+
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    width: column.getSize(),
+    minWidth: column.columnDef.minSize,
+    maxWidth: column.columnDef.maxSize,
+    ...(fixedType === 'left' && fixedPosition !== undefined ? { left: fixedPosition } : {}),
+    ...(fixedType === 'right' && fixedPosition !== undefined ? { right: fixedPosition } : {}),
   };
 
   const handleHeaderClick = (e: React.MouseEvent) => {
@@ -540,11 +550,13 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
     onHeaderClick?.(columnIndex);
   };
 
+  const headerClassName = `table-header-cell ${isColumnSelected ? 'column-selected' : ''} ${fixedType === 'left' ? 'fixed-left' : ''} ${fixedType === 'right' ? 'fixed-right' : ''}`;
+
   return (
     <th
       ref={setNodeRef}
       style={style}
-      className={`table-header-cell ${isColumnSelected ? 'column-selected' : ''}`}
+      className={headerClassName}
       colSpan={column.columnDef.meta?.colSpan}
       onClick={handleHeaderClick}
     >
@@ -1609,6 +1621,45 @@ export function AdvancedTable<T extends Record<string, any>>({
     },
   });
 
+  // 计算固定列的位置（左右累积偏移）
+  const fixedColumnsPosition = useMemo(() => {
+    const positions: Record<string, number> = {};
+    let leftOffset = 0;
+    let rightOffset = 0;
+    let leftCount = 0;
+    let rightCount = 0;
+
+    const headers = table.getHeaderGroups()[0]?.headers || [];
+    const visibleHeaders = headers.filter((header) => header.column.getIsVisible());
+
+    // 计算左侧固定列
+    for (const header of visibleHeaders) {
+      const fixed = header.column.columnDef.meta?.fixed;
+      if (fixed === 'left') {
+        const columnSize = header.column.getSize();
+        positions[header.column.id] = leftOffset;
+        // border-collapse 模式下，从第二列开始需要减去 1px 边框重叠
+        leftOffset += columnSize - (leftCount > 0 ? 1 : 0);
+        leftCount++;
+      }
+    }
+
+    // 计算右侧固定列（从右往左）
+    for (let i = visibleHeaders.length - 1; i >= 0; i--) {
+      const header = visibleHeaders[i];
+      const fixed = header.column.columnDef.meta?.fixed;
+      if (fixed === 'right') {
+        const columnSize = header.column.getSize();
+        positions[header.column.id] = rightOffset;
+        // border-collapse 模式下，从第二列开始需要减去 1px 边框重叠
+        rightOffset += columnSize - (rightCount > 0 ? 1 : 0);
+        rightCount++;
+      }
+    }
+
+    return positions;
+  }, [table, columnSizing, columnVisibility]);
+
   // 处理 Excel 粘贴（按照所见即所得的顺序：先横向后纵向填充）
   // startRowIndex: 显示行索引，startColumnIndex: 显示列索引（从0开始）
   const handlePaste = useCallback(
@@ -2281,6 +2332,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                     {headerGroup.headers.map((header) => {
                       const columnId = header.column.id;
                       const hasFilters = columnFilters[columnId] && columnFilters[columnId].length > 0;
+                      const fixedPosition = fixedColumnsPosition[columnId];
                       return (
                       <DraggableColumnHeader
                         key={header.id}
@@ -2288,6 +2340,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                           hasFilters={hasFilters || false}
                           showFilter={enableFiltering}
                           showDragHandle={enableColumnReorder}
+                          fixedPosition={fixedPosition}
                           onFilterClick={(e) => {
                             if (enableFiltering) {
                               handleFilterButtonClick(columnId, e);
@@ -2338,13 +2391,13 @@ export function AdvancedTable<T extends Record<string, any>>({
                         editingCell?.columnId === columnId;
                       const isColumnHovered = enableCrossHighlight && hoveredCell?.columnId === columnId;
                       const isCellHovered = isRowHovered && isColumnHovered;
-                      
+
                       // 获取单元格的原始值（用于编辑）
                       const cellValue = (row.original as any)[columnId];
-                      
+
                       // 检测列类型（从列定义中获取，或根据值推断）
                       const columnDef = cell.column.columnDef;
-                      const columnType = (columnDef.meta as any)?.type || 
+                      const columnType = (columnDef.meta as any)?.type ||
                         (typeof cellValue === 'number' ? 'number' : 'text');
 
                       // 计算单元格背景色
@@ -2354,20 +2407,26 @@ export function AdvancedTable<T extends Record<string, any>>({
                       if (isCellHovered) cellBgColor = '#bae7ff'; // 交叉点更深的颜色
                       if (isInRange) cellBgColor = '#e6f7ff'; // 选中范围背景色
 
+                      // 获取固定列信息
+                      const fixedType = columnDef.meta?.fixed;
+                      const fixedPosition = fixedColumnsPosition[columnId];
+
                     return (
                       <td
                         key={cell.id}
-                          className={`table-cell ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isEditing ? 'editing' : ''} ${isColumnHovered ? 'column-highlighted' : ''} ${isCellHovered ? 'cross-highlighted' : ''}`}
+                          className={`table-cell ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isEditing ? 'editing' : ''} ${isColumnHovered ? 'column-highlighted' : ''} ${isCellHovered ? 'cross-highlighted' : ''} ${fixedType === 'left' ? 'fixed-left' : ''} ${fixedType === 'right' ? 'fixed-right' : ''}`}
                         style={{
                           width: cell.column.getSize(),
                           minWidth: cell.column.columnDef.minSize,
                           maxWidth: cell.column.columnDef.maxSize,
                             ...(enableCrossHighlight && (isRowHovered || isColumnHovered) ? { backgroundColor: cellBgColor } : {}),
                             ...(isInRange ? { backgroundColor: cellBgColor } : {}),
-                            ...(isSelected ? { 
+                            ...(isSelected ? {
                               '--selected-border-color': selectedBorderColor,
                               boxShadow: `inset 0 0 0 2px ${selectedBorderColor}`,
                             } as React.CSSProperties : {}),
+                            ...(fixedType === 'left' && fixedPosition !== undefined ? { left: fixedPosition } : {}),
+                            ...(fixedType === 'right' && fixedPosition !== undefined ? { right: fixedPosition } : {}),
                           }}
                           onClick={(e) => {
                             // click 模式下，如果只是单击（没有拖拽），则进入编辑
