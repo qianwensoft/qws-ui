@@ -1281,6 +1281,9 @@ export interface AdvancedTableProps<T extends Record<string, any>> {
   exportFilename?: string;
   enableColumnReorder?: boolean; // 是否启用列设置中的排序功能，默认 false
   toolbarButtons?: ToolbarButton[];  // 工具栏扩展按钮
+  // 行级别编辑控制
+  isRowEditable?: (row: T, rowIndex: number) => boolean;  // 回调函数判断行是否可编辑
+  rowEditableKey?: string;  // 数据行中表示是否可编辑的属性名，默认 '_editable'
   // 分页相关
   enablePagination?: boolean;  // 是否启用分页，默认 false
   pagination?: PaginationConfig;
@@ -1310,6 +1313,8 @@ export function AdvancedTable<T extends Record<string, any>>({
   exportFilename = '表格数据',
   enableColumnReorder = false,
   toolbarButtons = [],
+  isRowEditable,
+  rowEditableKey = '_editable',
   enablePagination = false,
   pagination,
   onPageChange,
@@ -1368,6 +1373,28 @@ export function AdvancedTable<T extends Record<string, any>>({
       return [...prevOrder.filter((id) => newColumnIds.includes(id)), ...newIds];
     });
   }, [columns]);
+
+  // 判断行是否可编辑（行级别编辑控制）
+  // 接受 row 对象和 rowIndex，避免依赖 displayData
+  const isRowEditableInternal = useCallback((row: T, rowIndex: number): boolean => {
+    if (!row) return false;
+
+    // 1. 检查数据行属性（优先级最高）
+    if (rowEditableKey && rowEditableKey in row) {
+      const rowEditableValue = (row as any)[rowEditableKey];
+      if (typeof rowEditableValue === 'boolean') {
+        return rowEditableValue;  // 显式指定，直接返回
+      }
+    }
+
+    // 2. 检查回调函数
+    if (isRowEditable) {
+      return isRowEditable(row, rowIndex);
+    }
+
+    // 3. 默认可编辑（由列级别和全局开关控制）
+    return true;
+  }, [rowEditableKey, isRowEditable]);
 
   // 应用过滤条件
   const applyFilter = useCallback((row: T, filters: FilterCondition[], columnId: string): boolean => {
@@ -1707,11 +1734,18 @@ export function AdvancedTable<T extends Record<string, any>>({
       pastedRows.forEach((pastedRow, rowOffset) => {
         // 计算目标行在 displayData 中的索引
         const targetDisplayRowIndex = startRowIndex + rowOffset;
-        
+
         // 获取目标行在原始数据中的索引
         const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
-        
+
         if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
+          // 检查行级别编辑权限
+          const targetRow = displayData[targetDisplayRowIndex];
+          if (!targetRow || !isRowEditableInternal(targetRow, targetDisplayRowIndex)) {
+            // 该行不可编辑，跳过
+            return;
+          }
+
           // 更新现有行：按可见列顺序横向填充
           const oldRow = newData[targetDataIndex];
           const updatedRow = { ...oldRow };
@@ -1775,7 +1809,7 @@ export function AdvancedTable<T extends Record<string, any>>({
         }, 0);
       }
     },
-    [table, displayData, tableData, onDataChange]
+    [table, displayData, tableData, onDataChange, isRowEditableInternal]
   );
 
   // 检查单元格是否在选中范围内
@@ -1984,11 +2018,18 @@ export function AdvancedTable<T extends Record<string, any>>({
         pastedRows.forEach((pastedRow, rowOffset) => {
           // 计算目标行在 displayData 中的索引
           const targetDisplayRowIndex = startRowIndex + rowOffset;
-          
+
           // 获取目标行在原始数据中的索引
           const targetDataIndex = displayToDataIndexMap.get(targetDisplayRowIndex);
-          
+
           if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
+            // 检查行级别编辑权限
+            const targetRow = displayData[targetDisplayRowIndex];
+            if (!targetRow || !isRowEditableInternal(targetRow, targetDisplayRowIndex)) {
+              // 该行不可编辑，跳过
+              return;
+            }
+
             // 更新现有行：按可见列顺序横向填充
             const oldRow = newData[targetDataIndex];
             const updatedRow = { ...oldRow };
@@ -2058,7 +2099,7 @@ export function AdvancedTable<T extends Record<string, any>>({
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [selectedCell, table, displayData, tableData, enablePaste, onDataChange]);
+  }, [selectedCell, table, displayData, tableData, enablePaste, onDataChange, isRowEditableInternal]);
 
   // 切换列显示/隐藏
   const toggleColumn = (columnId: string) => {
@@ -2370,11 +2411,12 @@ export function AdvancedTable<T extends Record<string, any>>({
               {table.getRowModel().rows.map((row, rowIndex) => {
                 const isRowHovered = enableCrossHighlight && hoveredCell?.rowIndex === rowIndex;
                 const isZebraRow = enableZebraStripes && rowIndex % 2 === 1;
-                
+                const rowEditable = isRowEditableInternal(row.original, rowIndex);  // 行级别编辑权限
+
                 return (
                   <tr
                     key={row.id}
-                    className={`table-row ${isZebraRow ? 'zebra-row' : ''} ${isRowHovered ? 'row-highlighted' : ''}`}
+                    className={`table-row ${isZebraRow ? 'zebra-row' : ''} ${isRowHovered ? 'row-highlighted' : ''} ${!rowEditable ? 'row-readonly' : ''}`}
                     style={{
                       ...(isZebraRow && !isRowHovered ? { backgroundColor: zebraStripeColor } : {}),
                       ...(isRowHovered ? { backgroundColor: crossHighlightColor } : {}),
@@ -2430,14 +2472,14 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                           onClick={(e) => {
                             // click 模式下，如果只是单击（没有拖拽），则进入编辑
-                            if (!isEditing && enableEditing && editTriggerMode === 'click') {
+                            if (!isEditing && enableEditing && rowEditable && editTriggerMode === 'click') {
                               // 检查是否只是单击（selectionRange 的 start 和 end 相同，且与当前单元格一致）
-                              const isSingleClick = selectionRange && 
+                              const isSingleClick = selectionRange &&
                                 selectionRange.start.rowIndex === selectionRange.end.rowIndex &&
                                 selectionRange.start.columnIndex === selectionRange.end.columnIndex &&
                                 selectionRange.start.rowIndex === rowIndex &&
                                 selectionRange.start.columnIndex === columnIndex;
-                              
+
                               if (isSingleClick) {
                                 const visibleCells = table.getRowModel().rows[0]?.getVisibleCells();
                                 const column = visibleCells?.[columnIndex]?.column;
@@ -2479,8 +2521,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                         tabIndex={0}
                       >
-                          {/* 编辑条件：全局开启 + 列级别未禁用（editable 默认 true，显式设为 false 才禁用） */}
-                          {enableEditing && columnDef.meta?.editable !== false ? (
+                          {/* 编辑条件：全局开启 + 行级别可编辑 + 列级别未禁用（editable 默认 true，显式设为 false 才禁用） */}
+                          {enableEditing && rowEditable && columnDef.meta?.editable !== false ? (
                             <EditableCell
                               value={cellValue}
                               rowIndex={rowIndex}

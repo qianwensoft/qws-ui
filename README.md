@@ -91,10 +91,11 @@ QWS-UI 是一个功能强大的企业级组件库，专注于数据展示和打�
 #### 1. **AdvancedTable - 高级表格组件**
 功能丰富的表格组件，提供类似 Excel 的交互体验：
 - 📝 单击/双击编辑模式，支持自动保存
+- 🔒 **行级编辑控制**：灵活的权限管理（数据属性 + 回调函数）
 - 📋 Excel 数据粘贴，自动创建新行
 - 🔍 12种过滤操作符，支持多条件筛选
 - 📊 导出到 Excel（支持样式）
-- 🎯 列拖拽排序、调整宽度、显示/隐藏
+- 🎯 列拖拽排序、调整宽度、显示/隐藏、固定列
 - 📄 分页导航与自定义页码
 - 🎨 斑马纹、交叉高亮、多选单元格
 - 🛠️ 自定义工具栏按钮
@@ -109,6 +110,123 @@ QWS-UI 是一个功能强大的企业级组件库，专注于数据展示和打�
 - 📏 多种纸张尺寸（A4、A5、B5、Letter）+ 自定义尺寸
 - 🔄 数据绑定：`{{fieldName}}`，支持计算表达式
 - 🔍 缩放控制和精确定位
+
+---
+
+## 📦 安装组件
+
+QWS-UI 采用 **shadcn/ui 风格的组件注册表**，可以通过 CLI 一键安装组件到你的项目中。
+
+### 前置条件
+
+确保你的项目已经：
+1. ✅ 使用 React 18+
+2. ✅ 配置了 TypeScript
+3. ✅ 安装了 Tailwind CSS
+4. ✅ 初始化了 shadcn/ui (`npx shadcn@latest init`)
+
+### 安装方式
+
+#### 方式 1：直接安装（推荐）
+
+```bash
+# 安装 AdvancedTable
+npx shadcn@latest add https://gitee.com/qianwensoft/qws-ui/raw/prd/r/advanced-table
+
+# 安装 PrintDesigner
+npx shadcn@latest add https://gitee.com/qianwensoft/qws-ui/raw/prd/r/print-designer
+
+# 安装 AdvancedForm
+npx shadcn@latest add https://gitee.com/qianwensoft/qws-ui/raw/prd/r/advanced-form
+```
+
+#### 方式 2：配置注册表后安装
+
+在项目的 `components.json` 中添加注册表配置：
+
+```json
+{
+  "registries": {
+    "qws-ui": "https://gitee.com/qianwensoft/qws-ui/raw/prd/r"
+  }
+}
+```
+
+然后使用简短命令安装：
+
+```bash
+npx shadcn@latest add qws-ui/advanced-table
+npx shadcn@latest add qws-ui/print-designer
+npx shadcn@latest add qws-ui/advanced-form
+```
+
+### 使用组件
+
+安装后，组件会自动添加到 `src/components/` 目录：
+
+```tsx
+import { AdvancedTable } from '@/components/advanced-table';
+import type { ColumnDef } from '@tanstack/react-table';
+
+interface Person {
+  id: string;
+  name: string;
+  age: number;
+  email: string;
+}
+
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', accessorKey: 'name', header: '姓名' },
+  { id: 'age', accessorKey: 'age', header: '年龄' },
+  { id: 'email', accessorKey: 'email', header: '邮箱' },
+];
+
+const data: Person[] = [
+  { id: '1', name: '张三', age: 25, email: 'zhang@example.com' },
+  { id: '2', name: '李四', age: 30, email: 'li@example.com' },
+];
+
+export default function MyTable() {
+  return (
+    <AdvancedTable
+      data={data}
+      columns={columns}
+      enableEditing={true}
+      enableFiltering={true}
+      enablePaste={true}
+    />
+  );
+}
+```
+
+### 行级编辑控制示例
+
+```tsx
+// 使用数据行属性控制
+const data = [
+  { id: 1, name: 'Alice', age: 25, _editable: true },   // 可编辑
+  { id: 2, name: 'Bob', age: 30, _editable: false },    // 不可编辑
+];
+
+<AdvancedTable
+  data={data}
+  columns={columns}
+  rowEditableKey="_editable"
+/>
+
+// 或使用回调函数动态判断
+<AdvancedTable
+  data={data}
+  columns={columns}
+  isRowEditable={(row, rowIndex) => {
+    if (row.status === '离职') return false;
+    if (rowIndex < 3) return false;
+    return true;
+  }}
+/>
+```
+
+> 💡 **提示：** 详细的使用文档请查看 [PUBLISHING.md](./PUBLISHING.md)
 
 ---
 

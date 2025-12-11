@@ -1346,3 +1346,305 @@ export const FixedColumns: Story = {
   },
 };
 
+/**
+ * ## 行级编辑控制
+ *
+ * 通过行级别的编辑权限控制，可以灵活地设置哪些行可以编辑，哪些行只读。
+ *
+ * ### 实现方式
+ *
+ * #### 1. 使用数据行属性（推荐用于静态权限）
+ * 在数据对象中添加 `_editable` 属性（可通过 `rowEditableKey` 自定义属性名）：
+ * ```tsx
+ * const data = [
+ *   { id: 1, name: 'Alice', _editable: true },   // 可编辑
+ *   { id: 2, name: 'Bob', _editable: false },    // 不可编辑
+ *   { id: 3, name: 'Charlie' },                  // 未设置，由回调函数或默认规则决定
+ * ];
+ * ```
+ *
+ * #### 2. 使用回调函数（推荐用于动态权限）
+ * 通过 `isRowEditable` 回调函数动态判断：
+ * ```tsx
+ * <AdvancedTable
+ *   isRowEditable={(row, rowIndex) => {
+ *     // 只有状态为 'active' 的行可编辑
+ *     if (row.status !== 'active') return false;
+ *
+ *     // 前 3 行不可编辑
+ *     if (rowIndex < 3) return false;
+ *
+ *     return true;
+ *   }}
+ * />
+ * ```
+ *
+ * #### 3. 混合使用（最灵活）
+ * 数据行属性和回调函数可以同时使用，优先级如下：
+ * 1. **数据行属性** (`row._editable`) - 优先级最高
+ * 2. **回调函数** (`isRowEditable`) - 其次
+ * 3. **列级别控制** (`meta.editable`) - 再次
+ * 4. **全局开关** (`enableEditing`) - 最低
+ *
+ * ### 视觉反馈
+ *
+ * 不可编辑的行会自动应用以下样式：
+ * - 背景色变为灰色 (`#f5f5f5`)
+ * - 透明度降低 (`opacity: 0.7`)
+ * - 鼠标指针变为 `not-allowed`
+ * - 文字颜色变淡 (`#999`)
+ *
+ * ### 粘贴行为
+ *
+ * 当粘贴数据时，不可编辑的行会被自动跳过，不会更新其数据。
+ */
+export const RowLevelEditControl: StoryObj<typeof AdvancedTable> = {
+  render: () => {
+    // 扩展数据类型，添加 _editable 属性
+    interface EditablePerson extends Person {
+      _editable?: boolean;
+    }
+
+    const [data, setData] = useState<EditablePerson[]>(() => {
+      const baseData = generateData(10);
+      return baseData.map((person, index) => ({
+        ...person,
+        // 方式1：使用数据行属性控制
+        // 偶数行可编辑，奇数行不可编辑
+        _editable: index % 2 === 0,
+      }));
+    });
+
+    const handleDataChange = (newData: EditablePerson[], changeInfo?: DataChangeInfo<EditablePerson>) => {
+      console.log('数据变更：', changeInfo);
+      setData(newData);
+    };
+
+    return (
+      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+        <h2>示例1：使用数据行属性</h2>
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #91caff'
+        }}>
+          <h4 style={{ marginTop: 0 }}>权限规则：</h4>
+          <ul style={{ marginBottom: 0 }}>
+            <li><strong>偶数行（0, 2, 4...）：</strong>可编辑（_editable: true）</li>
+            <li><strong>奇数行（1, 3, 5...）：</strong>只读（_editable: false）</li>
+            <li><strong>视觉效果：</strong>只读行显示为灰色背景，透明度降低</li>
+          </ul>
+        </div>
+
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #ffd591'
+        }}>
+          <h4 style={{ marginTop: 0 }}>使用提示：</h4>
+          <p style={{ margin: 0 }}>
+            👉 尝试<strong>双击编辑</strong>任意单元格，观察只读行无法编辑<br/>
+            👉 尝试<strong>粘贴多行数据</strong>，只读行会被自动跳过<br/>
+            👉 只读行的<strong>鼠标指针</strong>会变为 not-allowed 样式
+          </p>
+        </div>
+
+        <AdvancedTable
+          data={data}
+          columns={baseColumns}
+          onDataChange={handleDataChange}
+          enableEditing={true}
+          editTriggerMode="doubleClick"
+          autoSave={true}
+          enablePaste={true}
+          rowEditableKey="_editable"  // 指定属性名（默认为 '_editable'）
+        />
+      </div>
+    );
+  },
+};
+
+/**
+ * ## 行级编辑控制 - 回调函数方式
+ *
+ * 使用回调函数动态判断行的编辑权限，适合需要根据业务逻辑动态控制的场景。
+ */
+export const RowLevelEditControlWithCallback: StoryObj<typeof AdvancedTable> = {
+  render: () => {
+    const [data, setData] = useState<Person[]>(() => generateData(15));
+
+    const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
+      console.log('数据变更：', changeInfo);
+      setData(newData);
+    };
+
+    // 方式2：使用回调函数动态判断
+    const isRowEditable = (row: Person, rowIndex: number): boolean => {
+      // 规则1：离职状态的行不可编辑
+      if (row.status === '离职') return false;
+
+      // 规则2：前3行不可编辑（示例：模拟已锁定的历史数据）
+      if (rowIndex < 3) return false;
+
+      // 规则3：薪资低于 15000 的行不可编辑（示例：权限限制）
+      if (row.salary < 15000) return false;
+
+      // 其他情况可编辑
+      return true;
+    };
+
+    return (
+      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+        <h2>示例2：使用回调函数</h2>
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #91caff'
+        }}>
+          <h4 style={{ marginTop: 0 }}>权限规则（通过回调函数实现）：</h4>
+          <ul style={{ marginBottom: 0 }}>
+            <li><strong>状态为 "离职"：</strong>不可编辑</li>
+            <li><strong>前3行：</strong>不可编辑（模拟历史数据锁定）</li>
+            <li><strong>薪资 &lt; ¥15,000：</strong>不可编辑（模拟权限限制）</li>
+            <li><strong>其他行：</strong>可编辑</li>
+          </ul>
+        </div>
+
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #ffd591'
+        }}>
+          <h4 style={{ marginTop: 0 }}>使用提示：</h4>
+          <p style={{ margin: 0 }}>
+            👉 观察<strong>不同条件</strong>下的只读行分布<br/>
+            👉 回调函数方式<strong>更灵活</strong>，可以根据复杂业务逻辑判断<br/>
+            👉 适合<strong>动态权限</strong>控制场景（如角色权限、工作流状态等）
+          </p>
+        </div>
+
+        <AdvancedTable
+          data={data}
+          columns={baseColumns}
+          onDataChange={handleDataChange}
+          enableEditing={true}
+          editTriggerMode="doubleClick"
+          autoSave={true}
+          enablePaste={true}
+          isRowEditable={isRowEditable}  // 传入回调函数
+        />
+      </div>
+    );
+  },
+};
+
+/**
+ * ## 行级编辑控制 - 混合模式
+ *
+ * 同时使用数据行属性和回调函数，优先级：数据行属性 > 回调函数 > 列级别 > 全局开关。
+ */
+export const RowLevelEditControlMixed: StoryObj<typeof AdvancedTable> = {
+  render: () => {
+    interface MixedPerson extends Person {
+      _editable?: boolean;
+      isLocked?: boolean;  // 额外的业务属性
+    }
+
+    const [data, setData] = useState<MixedPerson[]>(() => {
+      const baseData = generateData(12);
+      return baseData.map((person, index) => ({
+        ...person,
+        // 部分行显式设置 _editable
+        _editable: index === 0 ? false : index === 1 ? true : undefined,
+        isLocked: index % 4 === 0,  // 每4行有一个锁定标记
+      }));
+    });
+
+    const handleDataChange = (newData: MixedPerson[], changeInfo?: DataChangeInfo<MixedPerson>) => {
+      console.log('数据变更：', changeInfo);
+      setData(newData);
+    };
+
+    // 回调函数：处理未显式设置 _editable 的行
+    const isRowEditable = (row: MixedPerson, _rowIndex: number): boolean => {
+      // 如果有 isLocked 标记，则不可编辑
+      if (row.isLocked) return false;
+
+      // 试用期员工不可编辑
+      if (row.status === '试用期') return false;
+
+      return true;
+    };
+
+    return (
+      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+        <h2>示例3：混合模式</h2>
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #91caff'
+        }}>
+          <h4 style={{ marginTop: 0 }}>权限规则（混合模式）：</h4>
+          <ol style={{ marginBottom: 0 }}>
+            <li><strong>优先级1 - 数据行属性：</strong>
+              <ul>
+                <li>第1行（索引0）：_editable = false → 强制只读</li>
+                <li>第2行（索引1）：_editable = true → 强制可编辑</li>
+                <li>其他行：_editable = undefined → 交由回调函数判断</li>
+              </ul>
+            </li>
+            <li><strong>优先级2 - 回调函数：</strong>
+              <ul>
+                <li>isLocked = true → 不可编辑</li>
+                <li>状态为 "试用期" → 不可编辑</li>
+                <li>其他情况 → 可编辑</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #ffd591'
+        }}>
+          <h4 style={{ marginTop: 0 }}>使用提示：</h4>
+          <p style={{ margin: 0 }}>
+            👉 观察<strong>第1行</strong>（强制只读）和<strong>第2行</strong>（强制可编辑）的优先级效果<br/>
+            👉 其他行根据<strong>isLocked 和 status</strong> 动态判断<br/>
+            👉 混合模式可以<strong>覆盖所有场景</strong>：静态权限 + 动态权限
+          </p>
+        </div>
+
+        <AdvancedTable
+          data={data}
+          columns={baseColumns}
+          onDataChange={handleDataChange}
+          enableEditing={true}
+          editTriggerMode="doubleClick"
+          autoSave={true}
+          enablePaste={true}
+          rowEditableKey="_editable"
+          isRowEditable={isRowEditable}
+        />
+      </div>
+    );
+  },
+};
+
+

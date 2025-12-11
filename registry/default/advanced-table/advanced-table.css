@@ -327,6 +327,21 @@
   background-color: #e6f7ff;
 }
 
+/* 只读行样式 */
+.table-row.row-readonly {
+  background-color: #f5f5f5 !important;
+  opacity: 0.7;
+}
+
+.table-row.row-readonly .table-cell {
+  cursor: not-allowed;
+  color: #999;
+}
+
+.table-row.row-readonly .editable-cell-display {
+  cursor: not-allowed;
+}
+
 .table-cell {
   border: 1px solid #e8e8e8;
   padding: 8px 12px;
@@ -710,7 +725,7 @@
   border: none;
   padding: 4px 6px;
   margin-left: 8px;
-  color: #8c8c8c;
+  color: #bfbfbf;  /* 默认颜色更浅 */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -722,7 +737,7 @@
 
 .filter-button:hover {
   background: #f0f0f0;
-  color: #1890ff;
+  color: #8c8c8c;  /* hover 时回到原来的默认颜色 */
 }
 
 .filter-button.filter-active {
