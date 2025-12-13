@@ -28,13 +28,13 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, ChevronUp, ChevronDown, Download, ArrowUpDown, ArrowUp, ArrowDown, Hash, Type } from 'lucide-react';
+import { GripVertical, X, Settings, Filter, Plus, Trash2, Check, X as XIcon, ChevronUp, ChevronDown, Download, ArrowUpDown, ArrowUp, ArrowDown, Hash, Type, Pin, PinOff } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import './advanced-table.css';
 
@@ -631,6 +631,8 @@ interface SortableColumnItemProps {
   onMoveUp: (columnId: string) => void;
   onMoveDown: (columnId: string) => void;
   enableReorder?: boolean;  // 是否启用排序功能
+  columnFixed?: 'left' | 'right' | null;  // 列固定位置
+  onFixedChange?: (columnId: string, fixed: 'left' | 'right' | null) => void;  // 列固定变更回调
 }
 
 const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
@@ -642,6 +644,8 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
   onMoveUp,
   onMoveDown,
   enableReorder = false,
+  columnFixed,
+  onFixedChange,
 }) => {
   const {
     attributes,
@@ -662,6 +666,23 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
 
   const isFirst = index === 0;
   const isLast = index === columnOrder.length - 1;
+
+  // 处理列固定切换
+  const handleFixedToggle = () => {
+    if (!onFixedChange) return;
+
+    // 循环切换：无固定 -> 固定左侧 -> 固定右侧 -> 无固定
+    let newFixed: 'left' | 'right' | null = null;
+    if (columnFixed === null || columnFixed === undefined) {
+      newFixed = 'left';
+    } else if (columnFixed === 'left') {
+      newFixed = 'right';
+    } else {
+      newFixed = null;
+    }
+
+    onFixedChange(column.id, newFixed);
+  };
 
   return (
     <div
@@ -689,6 +710,25 @@ const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
         />
         <span>{column.columnDef.header as string}</span>
       </label>
+      {onFixedChange && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`column-fixed-button ${columnFixed ? 'fixed-active' : ''}`}
+          onClick={handleFixedToggle}
+          title={
+            columnFixed === 'left'
+              ? '固定在左侧 (点击切换到右侧)'
+              : columnFixed === 'right'
+              ? '固定在右侧 (点击取消固定)'
+              : '点击固定列'
+          }
+        >
+          {columnFixed === 'left' && <Pin size={14} style={{ transform: 'rotate(-45deg)' }} />}
+          {columnFixed === 'right' && <Pin size={14} style={{ transform: 'rotate(45deg)' }} />}
+          {!columnFixed && <PinOff size={14} />}
+        </Button>
+      )}
       {enableReorder && (
         <div className="column-order-controls">
           <Button
@@ -726,6 +766,8 @@ interface ColumnVisibilityModalProps {
   onColumnOrderChange: (newOrder: string[]) => void;
   onClose: () => void;
   enableReorder?: boolean;  // 是否启用排序功能，默认 false
+  columnFixed?: Record<string, 'left' | 'right' | null>;  // 列固定配置
+  onFixedChange?: (columnId: string, fixed: 'left' | 'right' | null) => void;  // 列固定变更回调
 }
 
 const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
@@ -736,13 +778,135 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
   onColumnOrderChange,
   onClose,
   enableReorder = false,
+  columnFixed = {},
+  onFixedChange,
 }) => {
+  console.log('=== ColumnVisibilityModal 渲染 ===');
+  console.log('columns:', columns);
+  console.log('columnOrder:', columnOrder);
+  console.log('orderedColumns 数量:', columns.length);
+
+  // 使用 state 来延迟打开 Dialog，避免立即触发 onOpenChange(false)
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  // 拖拽位置状态
+  const [position, setPosition] = React.useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
+
+  // 检查 DOM 中是否有 Dialog
+  React.useEffect(() => {
+    console.log('ColumnVisibilityModal mounted');
+    // 使用 setTimeout 确保在下一个 tick 打开 Dialog
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+      console.log('Dialog isOpen 设置为 true');
+
+      // 再次检查 DOM
+      setTimeout(() => {
+        const dialogElements = document.querySelectorAll('[role="dialog"]');
+        const overlays = document.querySelectorAll('[data-state]');
+        const portals = document.querySelectorAll('[data-radix-portal]');
+        console.log('=== DOM 检查（isOpen=true 后）===');
+        console.log('dialog 元素数量:', dialogElements.length);
+        console.log('overlay 元素数量:', overlays.length);
+        console.log('portal 元素数量:', portals.length);
+
+        if (dialogElements.length > 0) {
+          dialogElements.forEach((el, i) => {
+            const styles = window.getComputedStyle(el);
+            console.log(`Dialog ${i} className:`, el.className);
+            console.log(`Dialog ${i} 样式:`, {
+              display: styles.display,
+              visibility: styles.visibility,
+              opacity: styles.opacity,
+              zIndex: styles.zIndex,
+              position: styles.position,
+              left: styles.left,
+              top: styles.top,
+              transform: styles.transform,
+            });
+            console.log(`Dialog ${i} 完整元素:`, el);
+          });
+        }
+
+        // 检查 body 下的所有子元素
+        console.log('Body 的直接子元素:', Array.from(document.body.children).map(el => ({
+          tag: el.tagName,
+          id: el.id,
+          className: el.className,
+        })));
+      }, 100);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      console.log('ColumnVisibilityModal unmounted');
+    };
+  }, []);
+
+  // 拖拽处理
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // 只允许在标题栏拖拽
+    if ((e.target as HTMLElement).closest('[data-dialog-title]')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart]);
+
+  // 隐藏 shadcn-ui 默认关闭按钮
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    // 延迟一点确保 DOM 已渲染
+    const timer = setTimeout(() => {
+      // 查找并隐藏 DialogContent 内的 DialogPrimitive.Close 按钮
+      const dialogContent = document.querySelector('[role="dialog"]');
+      if (dialogContent) {
+        const defaultCloseButton = dialogContent.querySelector('button[class*="absolute"]');
+        if (defaultCloseButton && defaultCloseButton instanceof HTMLElement) {
+          defaultCloseButton.style.display = 'none';
+        }
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
   // 根据 columnOrder 排序列
   const orderedColumns = useMemo(() => {
     const columnMap = new Map(columns.map((col) => [col.id, col]));
-    return columnOrder
+    const result = columnOrder
       .map((id) => columnMap.get(id))
       .filter(Boolean) as any[];
+    console.log('orderedColumns 计算结果:', result);
+    return result;
   }, [columns, columnOrder]);
 
   // 拖拽传感器
@@ -783,12 +947,90 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
   };
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="column-settings-modal">
-        <DialogHeader>
-          <DialogTitle>列设置</DialogTitle>
-        </DialogHeader>
-        <div className="modal-body">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      console.log('Dialog onOpenChange 被调用:', open);
+      if (!open) {
+        setIsOpen(false);
+        onClose();
+      }
+    }}>
+      <DialogContent
+        className="sm:max-w-[500px]"
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'fixed',
+          left: position.x === 0 ? '50%' : `${position.x}px`,
+          top: position.y === 0 ? '50%' : `${position.y}px`,
+          transform: position.x === 0 && position.y === 0 ? 'translate(-50%, -50%)' : 'none',
+          zIndex: 50,
+          backgroundColor: 'white',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '0',
+          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+          maxWidth: '500px',
+          width: '100%',
+          maxHeight: '85vh',
+          display: 'flex',
+          flexDirection: 'column',
+          cursor: isDragging ? 'move' : 'default',
+        }}
+      >
+        {/* 标题栏 */}
+        <div
+          data-dialog-title
+          style={{
+            padding: '24px 24px 16px 24px',
+            cursor: 'move',
+            userSelect: 'none',
+            borderBottom: '1px solid #e5e7eb',
+            position: 'relative',
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>列设置</DialogTitle>
+            <DialogDescription>
+              管理表格列的显示、顺序和固定位置
+            </DialogDescription>
+          </DialogHeader>
+          {/* 自定义关闭按钮 */}
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              onClose();
+            }}
+            style={{
+              position: 'absolute',
+              right: '16px',
+              top: '16px',
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.7,
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+            aria-label="关闭"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M12 4L4 12M4 4L12 12"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        {/* 内容区域 */}
+        <div style={{ padding: '16px 24px 24px 24px', overflowY: 'auto', flex: 1 }}>
           {enableReorder && (
             <div className="column-settings-hint">
               <p>拖拽左侧图标或使用上下箭头调整列顺序</p>
@@ -811,6 +1053,8 @@ const ColumnVisibilityModal: React.FC<ColumnVisibilityModalProps> = ({
                   onMoveUp={handleMoveUp}
                   onMoveDown={handleMoveDown}
                   enableReorder={enableReorder}
+                  columnFixed={columnFixed[column.id] || null}
+                  onFixedChange={onFixedChange}
                 />
               ))}
             </SortableContext>
@@ -1328,6 +1572,7 @@ export function AdvancedTable<T extends Record<string, any>>({
   );
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
+  const [columnFixed, setColumnFixed] = useState<Record<string, 'left' | 'right' | null>>({});  // 列固定配置
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{
     rowIndex: number;
@@ -1541,8 +1786,16 @@ export function AdvancedTable<T extends Record<string, any>>({
       }
     });
 
+    // 应用分页（如果启用）
+    if (enablePagination && pagination) {
+      const { pageIndex, pageSize } = pagination;
+      const start = pageIndex * pageSize;
+      const end = start + pageSize;
+      result = result.slice(start, end);
+    }
+
     return result;
-  }, [tableData, filteredData, columnFilters, columnSorts]);
+  }, [tableData, filteredData, columnFilters, columnSorts, enablePagination, pagination]);
 
   // 处理过滤条件变化
   const handleFiltersChange = useCallback(
@@ -1599,15 +1852,36 @@ export function AdvancedTable<T extends Record<string, any>>({
     }
   }, []);
 
+  // 处理列固定变更
+  const handleFixedChange = useCallback((columnId: string, fixed: 'left' | 'right' | null) => {
+    setColumnFixed((prev) => ({
+      ...prev,
+      [columnId]: fixed,
+    }));
+  }, []);
+
   // 根据 columnOrder 重新排列列
   const orderedColumns = useMemo(() => {
     const columnMap = new Map(
       columns.map((col, index) => [col.id || `col-${index}`, col])
     );
     return columnOrder
-      .map((id) => columnMap.get(id))
+      .map((id) => {
+        const col = columnMap.get(id);
+        if (!col) return null;
+
+        // 应用列固定配置到 meta 中
+        const fixedValue = columnFixed[id];
+        return {
+          ...col,
+          meta: {
+            ...col.meta,
+            fixed: fixedValue || col.meta?.fixed || undefined,
+          },
+        };
+      })
       .filter(Boolean) as ColumnDef<T>[];
-  }, [columns, columnOrder]);
+  }, [columns, columnOrder, columnFixed]);
 
   // 拖拽传感器
   const sensors = useSensors(
@@ -1635,6 +1909,13 @@ export function AdvancedTable<T extends Record<string, any>>({
     columns: orderedColumns,
     getCoreRowModel: getCoreRowModel(),
     columnResizeMode: 'onChange' as ColumnResizeMode,
+    // 使用唯一标识符作为 row ID，避免重复 key 警告
+    getRowId: (row, index) => {
+      // 优先使用 row.id，如果没有则使用索引 + 随机值确保唯一性
+      const rowId = (row as any).id ?? `row-${index}`;
+      // 为了确保分页/过滤场景下的唯一性，加上当前数据的内存地址哈希
+      return String(rowId);
+    },
     state: {
       columnVisibility,
       columnSizing,
@@ -2342,17 +2623,20 @@ export function AdvancedTable<T extends Record<string, any>>({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {enableColumnReorder && (
-            <Button
-              variant="outline"
-              className="column-settings-button"
-              onClick={() => setShowColumnModal(true)}
-              title="列设置"
-            >
-              <Settings size={16} />
-              <span>列设置</span>
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            className="column-settings-button"
+            onClick={() => {
+              console.log('=== 列设置按钮被点击 ===');
+              console.log('当前 showColumnModal:', showColumnModal);
+              setShowColumnModal(true);
+              console.log('设置 showColumnModal 为 true');
+            }}
+            title="列设置"
+          >
+            <Settings size={16} />
+            <span>列设置</span>
+          </Button>
         </div>
       </div>
 
@@ -2563,15 +2847,19 @@ export function AdvancedTable<T extends Record<string, any>>({
         />
       )}
 
+      {console.log('=== 渲染检查 ===', { showColumnModal, columnsCount: table.getAllLeafColumns().length })}
+
       {showColumnModal && (
         <ColumnVisibilityModal
-          columns={table.getAllColumns()}
+          columns={table.getAllLeafColumns()}
           columnVisibility={columnVisibility}
           columnOrder={columnOrder}
           onToggleColumn={toggleColumn}
           onColumnOrderChange={setColumnOrder}
           onClose={() => setShowColumnModal(false)}
           enableReorder={enableColumnReorder}
+          columnFixed={columnFixed}
+          onFixedChange={handleFixedChange}
         />
       )}
 

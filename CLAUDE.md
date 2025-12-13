@@ -119,6 +119,7 @@ npm run build:registry
 - Excel paste: parses clipboard data, creates new rows as needed, tracks changes
 - Edit modes: single-click or double-click to edit cells
 - Column visibility and reordering via drag-and-drop
+- **Column Fixed Configuration** ⭐: Dynamic column pinning through column settings modal (left/right/none)
 - Pagination with customizable page sizes
 
 **PrintDesigner Architecture:**
@@ -160,6 +161,12 @@ npm run build:registry
 - **Cell Editing**: Two modes (click/doubleClick) with auto-save option; column-level editable control via `meta.editable`
 - **Data Change Tracking**: `onDataChange` callback includes `changeInfo` with type ('edit' | 'paste') and specific changes
 - **Selection**: Multi-cell selection with drag, stored as `{ startRow, endRow, startCol, endCol }`
+- **Column Fixed Configuration** ⭐:
+  - State managed in `columnFixed` (Record<string, 'left' | 'right' | null>)
+  - UI: Pin icon button in `SortableColumnItem` component in column settings modal
+  - Cycle through states: none → left → right → none
+  - Applied to column meta via `orderedColumns` useMemo
+  - Leverages existing fixed column rendering logic (`meta.fixed`)
 
 ### PrintDesigner
 - **Canvas Management**: fabric.Canvas instance created in `useEffect`, cleaned up on unmount
@@ -188,7 +195,12 @@ npx shadcn@latest add <component-name>
 - When adding features, consider both client-side and server-side scenarios
 - Use `onDataChange` callback for tracking all data modifications
 - Column definitions use `@tanstack/react-table` ColumnDef interface
-- Meta properties on columns control behavior (e.g., `meta.editable`)
+- Meta properties on columns control behavior (e.g., `meta.editable`, `meta.fixed`)
+- **Column Fixed Configuration**:
+  - Static: Set `meta.fixed` in column definition (`'left'`, `'right'`, or `undefined`)
+  - Dynamic: Users can configure via column settings modal (📌 icon button)
+  - The dynamic configuration overrides static configuration
+  - Fixed columns use `position: sticky` with shadow effects for visual separation
 
 ### Working with PrintDesigner
 - fabric.js objects are managed in canvas, not React state

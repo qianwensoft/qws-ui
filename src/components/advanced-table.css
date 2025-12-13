@@ -1208,3 +1208,36 @@
   -moz-appearance: textfield;
 }
 
+/* 列固定按钮样式 */
+.column-fixed-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.column-fixed-button:hover {
+  background: #f0f0f0;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.column-fixed-button.fixed-active {
+  background: #e6f7ff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.column-fixed-button.fixed-active:hover {
+  background: #bae7ff;
+}
+

@@ -131,6 +131,7 @@ const meta: Meta<typeof AdvancedTable> = {
 - **拖拽排序**：拖动列头左侧的 ⋮⋮ 图标调整列顺序
 - **调整宽度**：拖动列头右侧边界线
 - **显示/隐藏**：通过列设置弹窗控制列的可见性
+- **列固定配置** ⭐：在列设置弹窗中点击📌图标动态配置列固定（左侧/右侧/不固定）
 
 ### 📄 分页
 - 完整的分页导航（首页、上一页、下一页、末页）
@@ -221,11 +222,12 @@ function App() {
 4. **Excel Paste** - Excel 粘贴功能
 5. **Filtering** - 列过滤功能
 6. **Pagination** - 分页功能
-7. **Column Management** - 列管理功能
+7. **Column Management** - 列管理功能（含列固定配置 ⭐）
 8. **Custom Styling** - 自定义样式
 9. **Full Featured** - 完整功能示例
 10. **Large Dataset** - 大数据集示例
-11. **Toolbar Buttons** ⭐ - 工具栏自定义按钮（新）
+11. **Toolbar Buttons** - 工具栏自定义按钮
+12. **Fixed Columns** ⭐ - 固定列功能（静态配置 + 动态配置）
 
 ## 🎯 最佳实践
 
@@ -435,18 +437,20 @@ export const Basic: Story = {
     const [data, setData] = useState<Person[]>(generateData(5));
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>基础表格</h2>
         <p>最简单的用法，仅显示数据，禁用所有交互功能。</p>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          enableEditing={false}
-          enableFiltering={false}
-          enablePaste={false}
-          enableExport={false}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            enableEditing={false}
+            enableFiltering={false}
+            enablePaste={false}
+            enableExport={false}
+            enableColumnReorder={false}
+          />
+        </div>
       </div>
     );
   },
@@ -490,7 +494,7 @@ export const EditMode: Story = {
 
     // 列定义：部分列不可编辑
     const editColumns: ColumnDef<Person>[] = [
-      ...baseColumns.slice(0, -2),
+      ...baseColumns.slice(0, 2),  // name, age (不包含 email)
       {
         id: 'email',
         accessorKey: 'email',
@@ -500,26 +504,28 @@ export const EditMode: Story = {
           editable: false,  // 禁用编辑
         },
       },
-      ...baseColumns.slice(-2),
+      ...baseColumns.slice(3),  // department, salary, status, joinDate
     ];
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>编辑模式</h2>
         <p><strong>单击模式：</strong>单击单元格直接进入编辑，失焦自动保存。</p>
         <p><strong>提示：</strong>邮箱列设置为不可编辑。</p>
-        <AdvancedTable
-          data={data}
-          columns={editColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enableFiltering={false}
-          enablePaste={true}
-          enableExport={false}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={editColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enableFiltering={false}
+            enablePaste={true}
+            enableExport={false}
+            enableColumnReorder={false}
+          />
+        </div>
       </div>
     );
   },
@@ -561,22 +567,24 @@ export const DoubleClickEdit: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>双击编辑模式</h2>
         <p><strong>双击模式：</strong>双击单元格进入编辑，显示确认/取消按钮。</p>
         <p><strong>快捷键：</strong>Enter 保存，Esc 取消。</p>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="doubleClick"
-          autoSave={false}
-          enableFiltering={false}
-          enablePaste={true}
-          enableExport={false}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="doubleClick"
+            autoSave={false}
+            enableFiltering={false}
+            enablePaste={true}
+            enableExport={false}
+            enableColumnReorder={false}
+          />
+        </div>
       </div>
     );
   },
@@ -628,14 +636,14 @@ export const ExcelPaste: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>Excel 粘贴功能</h2>
-        <div style={{ 
-          background: '#f0f7ff', 
-          padding: '15px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #91caff' 
+          border: '1px solid #91caff'
         }}>
           <h3 style={{ marginTop: 0 }}>使用方法：</h3>
           <ol style={{ marginBottom: 0 }}>
@@ -646,18 +654,20 @@ export const ExcelPaste: Story = {
             <li>如果超出行数，会自动创建新行</li>
           </ol>
         </div>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enablePaste={true}
-          enableFiltering={false}
-          enableExport={false}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={false}
+            enableExport={false}
+            enableColumnReorder={false}
+          />
+        </div>
       </div>
     );
   },
@@ -673,15 +683,15 @@ export const Filtering: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>列过滤功能</h2>
         <p>点击列头右侧的过滤图标，支持多种过滤操作符。</p>
-        <div style={{ 
-          background: '#fff7e6', 
-          padding: '15px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #ffd591' 
+          border: '1px solid #ffd591'
         }}>
           <h3 style={{ marginTop: 0 }}>支持的操作符：</h3>
           <ul style={{ marginBottom: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -693,16 +703,18 @@ export const Filtering: Story = {
             <li>为空 / 非空</li>
           </ul>
         </div>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onFilterChange={handleFilterChange}
-          enableFiltering={true}
-          enableEditing={false}
-          enablePaste={false}
-          enableExport={true}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onFilterChange={handleFilterChange}
+            enableFiltering={true}
+            enableEditing={false}
+            enablePaste={false}
+            enableExport={true}
+            enableColumnReorder={false}
+          />
+        </div>
       </div>
     );
   },
@@ -727,27 +739,29 @@ export const Pagination: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>分页功能</h2>
         <p>支持页码导航、每页条数选择、快速跳转。</p>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          enableEditing={false}
-          enableFiltering={false}
-          enablePaste={false}
-          enableExport={true}
-          enableColumnReorder={false}
-          enablePagination={true}
-          pagination={{
-            pageIndex,
-            pageSize,
-            totalCount: data.length,
-          }}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          pageSizeOptions={[5, 10, 20, 50]}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            enableEditing={false}
+            enableFiltering={false}
+            enablePaste={false}
+            enableExport={true}
+            enableColumnReorder={false}
+            enablePagination={true}
+            pagination={{
+              pageIndex,
+              pageSize,
+              totalCount: data.length,
+            }}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            pageSizeOptions={[5, 10, 20, 50]}
+          />
+        </div>
       </div>
     );
   },
@@ -755,36 +769,66 @@ export const Pagination: Story = {
 
 // 7. 列拖拽和显示隐藏
 export const ColumnManagement: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+### 列管理功能
+
+完整的列管理功能，支持列的排序、显示/隐藏、固定等操作。
+
+**功能特点：**
+- **列拖拽排序：** 拖动列头左侧的 ⋮⋮ 图标调整列顺序
+- **调整列宽：** 拖动列头右侧的边界线
+- **显示/隐藏列：** 点击右上角"列设置"按钮
+- **列固定配置：** ⭐ 在列设置弹窗中点击📌图标配置列固定
+
+**列固定说明：**
+- 点击📌图标可以循环切换：无固定 → 固定左侧 → 固定右侧 → 无固定
+- 固定左侧：列会固定在表格左侧，横向滚动时保持可见
+- 固定右侧：列会固定在表格右侧，横向滚动时保持可见
+- 固定列会显示阴影效果，与滚动区域视觉分离
+
+**使用场景：**
+- 宽表格横向滚动时保持关键列可见
+- 固定操作列、序号列等重要列
+        `,
+      },
+    },
+  },
   render: () => {
     const [data, setData] = useState<Person[]>(generateData(5));
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>列管理功能</h2>
-        <div style={{ 
-          background: '#f6ffed', 
-          padding: '15px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: '#f6ffed',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #b7eb8f' 
+          border: '1px solid #b7eb8f'
         }}>
           <h3 style={{ marginTop: 0 }}>功能说明：</h3>
           <ul style={{ marginBottom: 0 }}>
             <li><strong>列拖拽排序：</strong>拖动列头左侧的 ⋮⋮ 图标调整列顺序</li>
             <li><strong>调整列宽：</strong>拖动列头右侧的边界线</li>
-            <li><strong>显示/隐藏列：</strong>点击右上角"列设置"按钮</li>
+            <li><strong>显示/隐藏列：</strong>点击右上角"列设置"按钮，勾选/取消勾选列</li>
+            <li><strong>列固定配置：</strong>⭐ 在列设置弹窗中点击📌图标配置列固定（无固定 → 左侧 → 右侧）</li>
           </ul>
         </div>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={setData}
-          enableEditing={false}
-          enableFiltering={false}
-          enablePaste={false}
-          enableExport={false}
-          enableColumnReorder={true}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={setData}
+            enableEditing={false}
+            enableFiltering={false}
+            enablePaste={false}
+            enableExport={false}
+            enableColumnReorder={true}
+          />
+        </div>
       </div>
     );
   },
@@ -796,26 +840,28 @@ export const CustomStyling: Story = {
     const [data, setData] = useState<Person[]>(generateData(10));
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>自定义样式</h2>
         <p>自定义斑马纹、交叉高亮、选中边框等颜色。</p>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={setData}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enableFiltering={false}
-          enablePaste={true}
-          enableExport={false}
-          enableColumnReorder={false}
-          enableZebraStripes={true}
-          enableCrossHighlight={true}
-          zebraStripeColor="#fff7e6"
-          crossHighlightColor="#e6fffb"
-          selectedBorderColor="#52c41a"
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={setData}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enableFiltering={false}
+            enablePaste={true}
+            enableExport={false}
+            enableColumnReorder={false}
+            enableZebraStripes={true}
+            enableCrossHighlight={true}
+            zebraStripeColor="#fff7e6"
+            crossHighlightColor="#e6fffb"
+            selectedBorderColor="#52c41a"
+          />
+        </div>
       </div>
     );
   },
@@ -844,21 +890,21 @@ export const FullFeatured: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>完整功能示例</h2>
-        <div style={{ 
-          background: '#fff0f6', 
-          padding: '15px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: '#fff0f6',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #ffadd2' 
+          border: '1px solid #ffadd2'
         }}>
           <h3 style={{ marginTop: 0 }}>启用的功能：</h3>
-          <ul style={{ 
-            marginBottom: 0, 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)', 
-            gap: '10px' 
+          <ul style={{
+            marginBottom: 0,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '10px'
           }}>
             <li>✅ 单元格编辑（单击模式）</li>
             <li>✅ Excel 粘贴</li>
@@ -872,35 +918,37 @@ export const FullFeatured: Story = {
             <li>✅ 多选单元格</li>
           </ul>
         </div>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          onFilterChange={handleFilterChange}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enablePaste={true}
-          enableFiltering={true}
-          enableExport={true}
-          exportFilename="员工数据表"
-          enableColumnReorder={true}
-          enableZebraStripes={true}
-          enableCrossHighlight={true}
-          enablePagination={true}
-          pagination={{
-            pageIndex,
-            pageSize,
-            totalCount: data.length,
-          }}
-          onPageChange={setPageIndex}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPageIndex(0);
-          }}
-          pageSizeOptions={[5, 10, 20, 50]}
-          allData={data}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            onFilterChange={handleFilterChange}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={true}
+            enableExport={true}
+            exportFilename="员工数据表"
+            enableColumnReorder={true}
+            enableZebraStripes={true}
+            enableCrossHighlight={true}
+            enablePagination={true}
+            pagination={{
+              pageIndex,
+              pageSize,
+              totalCount: data.length,
+            }}
+            onPageChange={setPageIndex}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPageIndex(0);
+            }}
+            pageSizeOptions={[5, 10, 20, 50]}
+            allData={data}
+          />
+        </div>
       </div>
     );
   },
@@ -914,33 +962,35 @@ export const LargeDataset: Story = {
     const [pageSize, setPageSize] = useState(20);
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>大数据集示例</h2>
         <p>200 条数据，每页显示 20 条。</p>
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enablePaste={true}
-          enableFiltering={true}
-          enableExport={true}
-          enableColumnReorder={true}
-          enablePagination={true}
-          pagination={{
-            pageIndex,
-            pageSize,
-            totalCount: data.length,
-          }}
-          onPageChange={setPageIndex}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPageIndex(0);
-          }}
-          pageSizeOptions={[10, 20, 50, 100]}
-          allData={data}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={true}
+            enableExport={true}
+            enableColumnReorder={true}
+            enablePagination={true}
+            pagination={{
+              pageIndex,
+              pageSize,
+              totalCount: data.length,
+            }}
+            onPageChange={setPageIndex}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPageIndex(0);
+            }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            allData={data}
+          />
+        </div>
       </div>
     );
   },
@@ -1062,14 +1112,14 @@ export const ToolbarButtons: Story = {
     };
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>工具栏自定义按钮</h2>
-        <div style={{ 
-          background: '#fff7e6', 
-          padding: '15px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #ffd591' 
+          border: '1px solid #ffd591'
         }}>
           <h3 style={{ marginTop: 0 }}>工具栏布局：</h3>
           <p style={{ marginBottom: '10px' }}>
@@ -1086,13 +1136,13 @@ export const ToolbarButtons: Story = {
             <li><strong>导入：</strong>导入外部数据</li>
           </ul>
         </div>
-        
-        <div style={{ 
-          background: '#f0f7ff', 
-          padding: '15px', 
-          borderRadius: '8px', 
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
           marginBottom: '20px',
-          border: '1px solid #91caff' 
+          border: '1px solid #91caff'
         }}>
           <h4 style={{ marginTop: 0 }}>提示：</h4>
           <p style={{ margin: 0 }}>
@@ -1101,27 +1151,29 @@ export const ToolbarButtons: Story = {
           </p>
         </div>
 
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          onSelectionChange={(selection) => {
-            if (selection) {
-              const rowIndices = new Set(selection.cells.map(cell => cell.rowIndex));
-              setSelectedRows(Array.from(rowIndices).sort((a, b) => a - b));
-            } else {
-              setSelectedRows([]);
-            }
-          }}
-          toolbarButtons={toolbarButtons}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enablePaste={true}
-          enableFiltering={true}
-          enableExport={true}
-          enableColumnReorder={true}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            onSelectionChange={(selection) => {
+              if (selection) {
+                const rowIndices = new Set(selection.cells.map(cell => cell.rowIndex));
+                setSelectedRows(Array.from(rowIndices).sort((a, b) => a - b));
+              } else {
+                setSelectedRows([]);
+              }
+            }}
+            toolbarButtons={toolbarButtons}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={true}
+            enableExport={true}
+            enableColumnReorder={true}
+          />
+        </div>
       </div>
     );
   },
@@ -1138,20 +1190,35 @@ export const FixedColumns: Story = {
 支持将指定列固定在表格左侧或右侧，横向滚动时固定列保持可见。
 
 **配置方式：**
-在列定义的 \`meta\` 中设置 \`fixed\` 字段：
-- \`fixed: 'left'\` - 固定在左侧
-- \`fixed: 'right'\` - 固定在右侧
+
+1. **静态配置（在列定义中）：**
+   在列定义的 \`meta\` 中设置 \`fixed\` 字段：
+   \`\`\`typescript
+   {
+     id: 'id',
+     header: 'ID',
+     meta: { fixed: 'left' }  // 固定在左侧
+   }
+   \`\`\`
+
+2. **动态配置（通过列设置弹窗）：** ⭐ 新增功能
+   - 点击工具栏右侧的"列设置"按钮
+   - 在列设置弹窗中，每一列旁边有一个📌图标
+   - 点击📌图标可以循环切换：无固定 → 固定左侧 → 固定右侧 → 无固定
+   - 配置会立即生效，无需代码修改
 
 **功能特点：**
 - 支持多列固定（按顺序累积）
 - 固定列带阴影效果，视觉区分更明显
 - 与其他功能完全兼容（编辑、过滤、排序等）
 - 响应式布局，自动计算固定位置
+- 动态配置无需修改代码，用户可自行调整
 
 **使用场景：**
 - 固定序号列、操作列等关键列
 - 宽表格横向滚动时保持重要列可见
 - 数据对比分析时固定参照列
+- 用户根据使用习惯自定义固定列
 
 **示例配置：**
 \`\`\`typescript
@@ -1161,6 +1228,8 @@ export const FixedColumns: Story = {
   meta: { fixed: 'left' }  // 固定在左侧
 }
 \`\`\`
+
+**提示：** 本示例同时演示了静态配置（ID、姓名、状态列已预设固定）和动态配置（可通过列设置修改）。
         `,
       },
     },
@@ -1295,7 +1364,7 @@ export const FixedColumns: Story = {
     ];
 
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <h2>固定列示例</h2>
 
         <div style={{
@@ -1325,22 +1394,25 @@ export const FixedColumns: Story = {
           <p style={{ margin: 0 }}>
             👉 <strong>横向滚动表格</strong>，观察 ID、姓名列和状态列始终保持固定位置<br/>
             👉 固定列带有<strong>阴影效果</strong>，与滚动区域视觉分离<br/>
-            👉 所有交互功能（编辑、过滤、选择）在固定列上<strong>正常工作</strong>
+            👉 所有交互功能（编辑、过滤、选择）在固定列上<strong>正常工作</strong><br/>
+            👉 ⭐ <strong>点击"列设置"</strong>按钮，可以通过📌图标<strong>动态调整</strong>列的固定位置
           </p>
         </div>
 
-        <AdvancedTable
-          data={data}
-          columns={fixedColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="click"
-          autoSave={true}
-          enablePaste={true}
-          enableFiltering={true}
-          enableExport={true}
-          enableColumnReorder={false}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={fixedColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="click"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={true}
+            enableExport={true}
+            enableColumnReorder={true}
+          />
+        </div>
       </div>
     );
   },
@@ -1421,7 +1493,7 @@ export const RowLevelEditControl: StoryObj<typeof AdvancedTable> = {
     };
 
     return (
-      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '1400px', margin: '0 auto' }}>
         <h2>示例1：使用数据行属性</h2>
 
         <div style={{
@@ -1454,16 +1526,18 @@ export const RowLevelEditControl: StoryObj<typeof AdvancedTable> = {
           </p>
         </div>
 
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="doubleClick"
-          autoSave={true}
-          enablePaste={true}
-          rowEditableKey="_editable"  // 指定属性名（默认为 '_editable'）
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="doubleClick"
+            autoSave={true}
+            enablePaste={true}
+            rowEditableKey="_editable"  // 指定属性名（默认为 '_editable'）
+          />
+        </div>
       </div>
     );
   },
@@ -1499,7 +1573,7 @@ export const RowLevelEditControlWithCallback: StoryObj<typeof AdvancedTable> = {
     };
 
     return (
-      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '1400px', margin: '0 auto' }}>
         <h2>示例2：使用回调函数</h2>
 
         <div style={{
@@ -1533,16 +1607,18 @@ export const RowLevelEditControlWithCallback: StoryObj<typeof AdvancedTable> = {
           </p>
         </div>
 
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="doubleClick"
-          autoSave={true}
-          enablePaste={true}
-          isRowEditable={isRowEditable}  // 传入回调函数
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="doubleClick"
+            autoSave={true}
+            enablePaste={true}
+            isRowEditable={isRowEditable}  // 传入回调函数
+          />
+        </div>
       </div>
     );
   },
@@ -1587,7 +1663,7 @@ export const RowLevelEditControlMixed: StoryObj<typeof AdvancedTable> = {
     };
 
     return (
-      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '1400px', margin: '0 auto' }}>
         <h2>示例3：混合模式</h2>
 
         <div style={{
@@ -1631,17 +1707,19 @@ export const RowLevelEditControlMixed: StoryObj<typeof AdvancedTable> = {
           </p>
         </div>
 
-        <AdvancedTable
-          data={data}
-          columns={baseColumns}
-          onDataChange={handleDataChange}
-          enableEditing={true}
-          editTriggerMode="doubleClick"
-          autoSave={true}
-          enablePaste={true}
-          rowEditableKey="_editable"
-          isRowEditable={isRowEditable}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={baseColumns}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="doubleClick"
+            autoSave={true}
+            enablePaste={true}
+            rowEditableKey="_editable"
+            isRowEditable={isRowEditable}
+          />
+        </div>
       </div>
     );
   },
