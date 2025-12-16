@@ -36,6 +36,7 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import './advanced-table.css';
 
 // 扩展 @tanstack/react-table 的 ColumnMeta 类型
@@ -204,7 +205,6 @@ interface FilterPanelProps {
   sortConfig?: SortConfig;  // 当前列的排序配置
   onSortChange?: (config: SortConfig) => void;  // 排序配置变更回调
   onClose: () => void;
-  position: { top: number; left: number };
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -214,67 +214,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   sortConfig,
   onSortChange,
   onClose,
-  position,
 }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [adjustedPosition, setAdjustedPosition] = React.useState(position);
+  // 本地状态：存储临时的过滤条件（未确认前不触发刷新）
+  const [localFilters, setLocalFilters] = React.useState<FilterCondition[]>(filters);
 
-  // 智能定位：确保面板不超出视口
+  // 当外部 filters 变化时，更新本地状态
   React.useEffect(() => {
-    if (!panelRef.current) return;
-
-    const panel = panelRef.current;
-    const rect = panel.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const padding = 8; // 距离边缘的最小距离
-
-    let newTop = position.top;
-    let newLeft = position.left;
-
-    // 检查右侧是否超出
-    if (rect.right > viewportWidth - padding) {
-      newLeft = viewportWidth - rect.width - padding;
-    }
-
-    // 检查左侧是否超出
-    if (rect.left < padding) {
-      newLeft = padding;
-    }
-
-    // 检查底部是否超出
-    if (rect.bottom > viewportHeight - padding) {
-      // 尝试向上移动，但至少保留一些空间在顶部
-      const maxTop = viewportHeight - rect.height - padding;
-      const minTop = padding;
-      newTop = Math.max(minTop, Math.min(maxTop, position.top - rect.height - 8));
-    }
-
-    // 检查顶部是否超出
-    if (rect.top < padding) {
-      newTop = padding;
-    }
-
-    if (newTop !== position.top || newLeft !== position.left) {
-      setAdjustedPosition({ top: newTop, left: newLeft });
-    } else {
-      setAdjustedPosition(position);
-    }
-  }, [position]);
-
-  // 点击外部关闭
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
+    setLocalFilters(filters);
+  }, [filters]);
 
   // 添加过滤条件
   const handleAddCondition = () => {
@@ -283,24 +230,36 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       operator: 'equals',
       value: '',
     };
-    onFiltersChange([...filters, newCondition]);
+    setLocalFilters([...localFilters, newCondition]);
   };
 
   // 删除过滤条件
   const handleRemoveCondition = (id: string) => {
-    onFiltersChange(filters.filter((f) => f.id !== id));
+    setLocalFilters(localFilters.filter((f) => f.id !== id));
   };
 
   // 更新过滤条件
   const handleUpdateCondition = (id: string, updates: Partial<FilterCondition>) => {
-    onFiltersChange(
-      filters.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    setLocalFilters(
+      localFilters.map((f) => (f.id === id ? { ...f, ...updates } : f))
     );
   };
 
   // 清除所有过滤条件
   const handleClearAll = () => {
-    onFiltersChange([]);
+    setLocalFilters([]);
+  };
+
+  // 确认应用过滤条件
+  const handleConfirm = () => {
+    onFiltersChange(localFilters);
+    onClose(); // 关闭弹窗
+  };
+
+  // 取消修改，恢复到外部传入的 filters
+  const handleCancel = () => {
+    setLocalFilters(filters);
+    onClose(); // 关闭弹窗
   };
 
   // 处理排序类型变更
@@ -342,21 +301,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   };
 
   return (
-    <div
-      ref={panelRef}
-      className="filter-panel"
-      style={{
-        position: 'fixed',
-        top: `${adjustedPosition.top}px`,
-        left: `${adjustedPosition.left}px`,
-        zIndex: 1001,
-      }}
-    >
+    <div className="filter-panel-content">
       <div className="filter-panel-header">
-        <span className="filter-panel-title">过滤: {columnHeader}</span>
-        <Button variant="ghost" size="icon" className="filter-close-button" onClick={onClose}>
-          <X size={16} />
-        </Button>
+        <span className="filter-panel-title">{columnHeader}</span>
       </div>
       <div className="filter-panel-body">
         {/* 排序区域 - 移到最上面 */}
@@ -413,7 +360,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           </div>
         )}
 
-        {filters.length === 0 ? (
+        {localFilters.length === 0 ? (
           <div className="filter-empty-state">
             <p>暂无过滤条件</p>
             <Button variant="default" size="sm" className="filter-add-button" onClick={handleAddCondition}>
@@ -424,7 +371,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         ) : (
           <>
             <div className="filter-conditions">
-              {filters.map((condition, index) => (
+              {localFilters.map((condition, index) => (
                 <div key={condition.id} className="filter-condition-item">
                   {index > 0 && <div className="filter-connector">且</div>}
                   <div className="filter-condition-content">
@@ -483,6 +430,16 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             </div>
           </>
         )}
+
+        {/* 确认和取消按钮 */}
+        <div className="filter-panel-footer">
+          <Button variant="outline" size="sm" className="filter-cancel-button" onClick={handleCancel}>
+            取消
+          </Button>
+          <Button variant="default" size="sm" className="filter-confirm-button" onClick={handleConfirm}>
+            确认
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -493,8 +450,9 @@ interface DraggableColumnHeaderProps {
   column: any;
   children: React.ReactNode;
   hasFilters: boolean;
-  onFilterClick: (e: React.MouseEvent) => void;
-  filterButtonRef?: (el: HTMLButtonElement | null) => void;
+  isFilterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  filterPanelContent?: React.ReactNode;
   onColumnResize?: (columnId: string, size: number) => void;
   showFilter?: boolean;  // 是否显示过滤按钮
   showDragHandle?: boolean;  // 是否显示拖拽手柄
@@ -508,8 +466,9 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   column,
   children,
   hasFilters,
-  onFilterClick,
-  filterButtonRef,
+  isFilterOpen,
+  onFilterOpenChange,
+  filterPanelContent,
   onColumnResize,
   showFilter = true,
   showDragHandle = true,
@@ -577,17 +536,27 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
         {children}
         </div>
         {showFilter && (
-          <Button
-            ref={filterButtonRef}
-            variant="ghost"
-            size="icon"
-            className={`filter-button ${hasFilters ? 'filter-active' : ''}`}
-            onClick={onFilterClick}
-            title="过滤"
-            style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}
-          >
-            <Filter size={14} />
-          </Button>
+          <Popover open={isFilterOpen} onOpenChange={onFilterOpenChange}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`filter-button ${hasFilters ? 'filter-active' : ''}`}
+                title="过滤"
+                style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}
+              >
+                <Filter size={14} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="filter-popover-content"
+              align="start"
+              side="bottom"
+              sideOffset={4}
+            >
+              {filterPanelContent}
+            </PopoverContent>
+          </Popover>
         )}
         <div
           className="resize-handle"
@@ -597,7 +566,7 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
             const startX = e.pageX;
             const startWidth = column.getSize();
             const columnId = column.id;
-            
+
             const handleMouseMove = (e: MouseEvent) => {
               e.preventDefault();
               const diff = e.pageX - startX;
@@ -606,12 +575,12 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
                 onColumnResize(columnId, newWidth);
               }
             };
-            
+
             const handleMouseUp = () => {
               document.removeEventListener('mousemove', handleMouseMove);
               document.removeEventListener('mouseup', handleMouseUp);
             };
-            
+
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
           }}
@@ -1597,11 +1566,9 @@ export function AdvancedTable<T extends Record<string, any>>({
   const [columnSorts, setColumnSorts] = useState<ColumnSorts>({});  // 列排序配置
   const [openFilterPanel, setOpenFilterPanel] = useState<{
     columnId: string;
-    position: { top: number; left: number };
   } | null>(null);
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const filterButtonRefs = useRef<Record<string, HTMLButtonElement>>({});
 
   // 更新数据
   React.useEffect(() => {
@@ -1835,22 +1802,6 @@ export function AdvancedTable<T extends Record<string, any>>({
     },
     []
   );
-
-  // 处理过滤器按钮点击
-  const handleFilterButtonClick = useCallback((columnId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const button = filterButtonRefs.current[columnId];
-    if (button) {
-      const rect = button.getBoundingClientRect();
-      setOpenFilterPanel({
-        columnId,
-        position: {
-          top: rect.bottom + 4,
-          left: rect.left,
-        },
-      });
-    }
-  }, []);
 
   // 处理列固定变更
   const handleFixedChange = useCallback((columnId: string, fixed: 'left' | 'right' | null) => {
@@ -2658,6 +2609,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                       const columnId = header.column.id;
                       const hasFilters = columnFilters[columnId] && columnFilters[columnId].length > 0;
                       const fixedPosition = fixedColumnsPosition[columnId];
+                      const isFilterOpen = openFilterPanel?.columnId === columnId;
+
                       return (
                       <DraggableColumnHeader
                         key={header.id}
@@ -2666,16 +2619,28 @@ export function AdvancedTable<T extends Record<string, any>>({
                           showFilter={enableFiltering}
                           showDragHandle={enableColumnReorder}
                           fixedPosition={fixedPosition}
-                          onFilterClick={(e) => {
+                          isFilterOpen={isFilterOpen}
+                          onFilterOpenChange={(open) => {
                             if (enableFiltering) {
-                              handleFilterButtonClick(columnId, e);
+                              setOpenFilterPanel(open ? { columnId } : null);
                             }
                           }}
-                          filterButtonRef={(el) => {
-                            if (el) {
-                              filterButtonRefs.current[columnId] = el;
-                            }
-                          }}
+                          filterPanelContent={
+                            <FilterPanel
+                              columnId={columnId}
+                              columnHeader={
+                                columns.find((col) => col.id === columnId)?.header as string ||
+                                columnId
+                              }
+                              filters={columnFilters[columnId] || []}
+                              onFiltersChange={(filters) =>
+                                handleFiltersChange(columnId, filters)
+                              }
+                              sortConfig={columnSorts[columnId]}
+                              onSortChange={(config) => handleSortChange(columnId, config)}
+                              onClose={() => setOpenFilterPanel(null)}
+                            />
+                          }
                           onColumnResize={handleColumnResize}
                       >
                         {header.isPlaceholder
@@ -2860,24 +2825,6 @@ export function AdvancedTable<T extends Record<string, any>>({
           enableReorder={enableColumnReorder}
           columnFixed={columnFixed}
           onFixedChange={handleFixedChange}
-        />
-      )}
-
-      {openFilterPanel && enableFiltering && (
-        <FilterPanel
-          columnId={openFilterPanel.columnId}
-          columnHeader={
-            columns.find((col) => col.id === openFilterPanel.columnId)?.header as string ||
-            openFilterPanel.columnId
-          }
-          filters={columnFilters[openFilterPanel.columnId] || []}
-          onFiltersChange={(filters) =>
-            handleFiltersChange(openFilterPanel.columnId, filters)
-          }
-          sortConfig={columnSorts[openFilterPanel.columnId]}
-          onSortChange={(config) => handleSortChange(openFilterPanel.columnId, config)}
-          onClose={() => setOpenFilterPanel(null)}
-          position={openFilterPanel.position}
         />
       )}
     </div>

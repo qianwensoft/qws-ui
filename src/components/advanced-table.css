@@ -749,25 +749,23 @@
   background: #bae7ff;
 }
 
-/* 过滤面板样式 */
-.filter-panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  min-width: 320px;
-  max-width: 400px;
-  max-height: 80vh;
+/* 过滤面板样式 - 使用 shadcn-ui Popover */
+.filter-popover-content {
+  min-width: 320px !important;
+  max-width: 400px !important;
+  padding: 0 !important;
+  background: white !important;
+}
+
+.filter-panel-content {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: white;
 }
 
 .filter-panel-header {
   padding: 12px 16px;
   border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: #fafafa;
 }
 
@@ -777,30 +775,11 @@
   color: #333;
 }
 
-.filter-close-button {
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #8c8c8c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.filter-close-button:hover {
-  background: #f0f0f0;
-  color: #333;
-}
-
 .filter-panel-body {
   padding: 16px;
-  flex: 1;
+  max-height: 60vh;
   overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
+  background: white;
 }
 
 .filter-panel-body::-webkit-scrollbar {
@@ -819,6 +798,57 @@
 
 .filter-panel-body::-webkit-scrollbar-thumb:hover {
   background: #bfbfbf;
+}
+
+/* 过滤面板底部按钮区域 */
+.filter-panel-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e8e8e8;
+  background: #fafafa;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.filter-panel-footer button {
+  min-width: 80px;
+  height: 32px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+/* 确认按钮样式 */
+.filter-confirm-button {
+  background-color: #1890ff !important;
+  color: white !important;
+  border: none !important;
+}
+
+.filter-confirm-button:hover {
+  background-color: #40a9ff !important;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.3) !important;
+}
+
+.filter-confirm-button:active {
+  background-color: #096dd9 !important;
+}
+
+/* 取消按钮样式 */
+.filter-cancel-button {
+  background-color: white !important;
+  color: #595959 !important;
+  border: 1px solid #d9d9d9 !important;
+}
+
+.filter-cancel-button:hover {
+  background-color: #fafafa !important;
+  border-color: #40a9ff !important;
+  color: #40a9ff !important;
+}
+
+.filter-cancel-button:active {
+  background-color: #f0f0f0 !important;
 }
 
 .filter-empty-state {
@@ -1206,6 +1236,21 @@
 .pagination-jumper-input[type=number] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+/* 过滤面板底部按钮区域 */
+.filter-panel-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e8e8e8;
+  background: #fafafa;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.filter-panel-footer button {
+  min-width: 80px;
 }
 
 /* 列固定按钮样式 */
