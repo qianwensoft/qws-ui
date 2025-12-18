@@ -1608,6 +1608,23 @@ export function AdvancedTable<T extends Record<string, any>>({
     return true;
   }, [rowEditableKey, isRowEditable]);
 
+  // 判断单元格是否可编辑（列级别优先级最高）
+  const isCellEditable = useCallback((
+    rowEditable: boolean,
+    columnMeta?: any
+  ): boolean => {
+    // 1. 列级别明确设置了 editable - 最高优先级
+    if (columnMeta?.editable === true) {
+      return true;  // 列强制可编辑，忽略全局和行级别设置
+    }
+    if (columnMeta?.editable === false) {
+      return false; // 列强制不可编辑，忽略全局和行级别设置
+    }
+
+    // 2. 列未设置，遵循全局和行级别设置
+    return enableEditing && rowEditable;
+  }, [enableEditing]);
+
   // 应用过滤条件
   const applyFilter = useCallback((row: T, filters: FilterCondition[], columnId: string): boolean => {
     if (filters.length === 0) return true;
@@ -1973,10 +1990,9 @@ export function AdvancedTable<T extends Record<string, any>>({
         if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
           // 检查行级别编辑权限
           const targetRow = displayData[targetDisplayRowIndex];
-          if (!targetRow || !isRowEditableInternal(targetRow, targetDisplayRowIndex)) {
-            // 该行不可编辑，跳过
-            return;
-          }
+          if (!targetRow) return;
+
+          const rowEditable = isRowEditableInternal(targetRow, targetDisplayRowIndex);
 
           // 更新现有行：按可见列顺序横向填充
           const oldRow = newData[targetDataIndex];
@@ -1984,17 +2000,21 @@ export function AdvancedTable<T extends Record<string, any>>({
           pastedRow.forEach((cellValue, colOffset) => {
             // 使用列索引直接定位目标列
             const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
-              const oldValue = (oldRow as any)[targetColumnId];
-              (updatedRow as any)[targetColumnId] = cellValue;
-              // 记录变更
-              changes.push({
-                rowIndex: targetDataIndex,
-                columnId: targetColumnId,
-                oldValue,
-                newValue: cellValue,
-                rowData: updatedRow,
-              });
+            if (targetColumnId) {
+              // 检查该列是否可编辑（列级别优先级最高）
+              const column = table.getColumn(targetColumnId);
+              if (column && isCellEditable(rowEditable, column.columnDef.meta)) {
+                const oldValue = (oldRow as any)[targetColumnId];
+                (updatedRow as any)[targetColumnId] = cellValue;
+                // 记录变更
+                changes.push({
+                  rowIndex: targetDataIndex,
+                  columnId: targetColumnId,
+                  oldValue,
+                  newValue: cellValue,
+                  rowData: updatedRow,
+                });
+              }
             }
           });
           newData[targetDataIndex] = updatedRow;
@@ -2004,18 +2024,25 @@ export function AdvancedTable<T extends Record<string, any>>({
           const templateRow = newData[newData.length - 1];
           const newRow = templateRow ? { ...templateRow } : ({} as T);
           const newRowIndex = newData.length;
+          // 新行默认可编辑
+          const rowEditable = true;
+
           pastedRow.forEach((cellValue, colOffset) => {
             const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
-              if (targetColumnId) {
-              (newRow as any)[targetColumnId] = cellValue;
-              // 记录变更（新行的 oldValue 为 undefined）
-              changes.push({
-                rowIndex: newRowIndex,
-                columnId: targetColumnId,
-                oldValue: undefined,
-                newValue: cellValue,
-                rowData: newRow,
-              });
+            if (targetColumnId) {
+              // 检查该列是否可编辑（列级别优先级最高）
+              const column = table.getColumn(targetColumnId);
+              if (column && isCellEditable(rowEditable, column.columnDef.meta)) {
+                (newRow as any)[targetColumnId] = cellValue;
+                // 记录变更（新行的 oldValue 为 undefined）
+                changes.push({
+                  rowIndex: newRowIndex,
+                  columnId: targetColumnId,
+                  oldValue: undefined,
+                  newValue: cellValue,
+                  rowData: newRow,
+                });
+              }
             }
           });
           newData.push(newRow);
@@ -2257,10 +2284,9 @@ export function AdvancedTable<T extends Record<string, any>>({
           if (targetDataIndex !== undefined && targetDataIndex < newData.length) {
             // 检查行级别编辑权限
             const targetRow = displayData[targetDisplayRowIndex];
-            if (!targetRow || !isRowEditableInternal(targetRow, targetDisplayRowIndex)) {
-              // 该行不可编辑，跳过
-              return;
-            }
+            if (!targetRow) return;
+
+            const rowEditable = isRowEditableInternal(targetRow, targetDisplayRowIndex);
 
             // 更新现有行：按可见列顺序横向填充
             const oldRow = newData[targetDataIndex];
@@ -2269,16 +2295,20 @@ export function AdvancedTable<T extends Record<string, any>>({
               // 使用列索引直接定位目标列
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
               if (targetColumnId) {
-                const oldValue = (oldRow as any)[targetColumnId];
-                (updatedRow as any)[targetColumnId] = cellValue;
-                // 记录变更
-                changes.push({
-                  rowIndex: targetDataIndex,
-                  columnId: targetColumnId,
-                  oldValue,
-                  newValue: cellValue,
-                  rowData: updatedRow,
-                });
+                // 检查该列是否可编辑（列级别优先级最高）
+                const column = table.getColumn(targetColumnId);
+                if (column && isCellEditable(rowEditable, column.columnDef.meta)) {
+                  const oldValue = (oldRow as any)[targetColumnId];
+                  (updatedRow as any)[targetColumnId] = cellValue;
+                  // 记录变更
+                  changes.push({
+                    rowIndex: targetDataIndex,
+                    columnId: targetColumnId,
+                    oldValue,
+                    newValue: cellValue,
+                    rowData: updatedRow,
+                  });
+                }
               }
             });
             newData[targetDataIndex] = updatedRow;
@@ -2288,18 +2318,25 @@ export function AdvancedTable<T extends Record<string, any>>({
             const templateRow = newData[newData.length - 1];
             const newRow = templateRow ? { ...templateRow } : ({} as T);
             const newRowIndex = newData.length;
+            // 新行默认可编辑
+            const rowEditable = true;
+
             pastedRow.forEach((cellValue, colOffset) => {
               const targetColumnId = visibleColumnIds[startColumnIndex + colOffset];
               if (targetColumnId) {
-                (newRow as any)[targetColumnId] = cellValue;
-                // 记录变更（新行的 oldValue 为 undefined）
-                changes.push({
-                  rowIndex: newRowIndex,
-                  columnId: targetColumnId,
-                  oldValue: undefined,
-                  newValue: cellValue,
-                  rowData: newRow,
-                });
+                // 检查该列是否可编辑（列级别优先级最高）
+                const column = table.getColumn(targetColumnId);
+                if (column && isCellEditable(rowEditable, column.columnDef.meta)) {
+                  (newRow as any)[targetColumnId] = cellValue;
+                  // 记录变更（新行的 oldValue 为 undefined）
+                  changes.push({
+                    rowIndex: newRowIndex,
+                    columnId: targetColumnId,
+                    oldValue: undefined,
+                    newValue: cellValue,
+                    rowData: newRow,
+                  });
+                }
               }
             });
             newData.push(newRow);
@@ -2721,7 +2758,7 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                           onClick={(e) => {
                             // click 模式下，如果只是单击（没有拖拽），则进入编辑
-                            if (!isEditing && enableEditing && rowEditable && editTriggerMode === 'click') {
+                            if (!isEditing && editTriggerMode === 'click') {
                               // 检查是否只是单击（selectionRange 的 start 和 end 相同，且与当前单元格一致）
                               const isSingleClick = selectionRange &&
                                 selectionRange.start.rowIndex === selectionRange.end.rowIndex &&
@@ -2732,7 +2769,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                               if (isSingleClick) {
                                 const visibleCells = table.getRowModel().rows[0]?.getVisibleCells();
                                 const column = visibleCells?.[columnIndex]?.column;
-                                if (column && column.columnDef.meta?.editable !== false) {
+                                // 使用新的单元格编辑判断函数
+                                if (column && isCellEditable(rowEditable, column.columnDef.meta)) {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   handleStartEdit(rowIndex, columnId);
@@ -2770,8 +2808,8 @@ export function AdvancedTable<T extends Record<string, any>>({
                           }}
                         tabIndex={0}
                       >
-                          {/* 编辑条件：全局开启 + 行级别可编辑 + 列级别未禁用（editable 默认 true，显式设为 false 才禁用） */}
-                          {enableEditing && rowEditable && columnDef.meta?.editable !== false ? (
+                          {/* 编辑条件：列级别优先级最高 */}
+                          {isCellEditable(rowEditable, columnDef.meta) ? (
                             <EditableCell
                               value={cellValue}
                               rowIndex={rowIndex}
