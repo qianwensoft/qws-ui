@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -2626,6 +2626,95 @@ export function AdvancedTable<T extends Record<string, any>>({
             document.removeEventListener('paste', handleGlobalPaste);
         };
     }, [selectedCell, table, displayData, tableData, enablePaste, onDataChange, isRowEditableInternal]);
+
+    // 处理复制选区到剪贴板
+    useEffect(() => {
+        const handleCopy = async (e: ClipboardEvent) => {
+            // 只有当有选区且不是在编辑状态时才处理复制
+            if (!selectionRange || editingCell) {
+                return;
+            }
+
+            // 检查是否是在 input/textarea 中选中文本
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                // 如果在输入框中，不拦截，让默认复制行为生效
+                return;
+            }
+
+            // 获取选区范围
+            const { start, end } = selectionRange;
+            const minRow = Math.min(start.rowIndex, end.rowIndex);
+            const maxRow = Math.max(start.rowIndex, end.rowIndex);
+            const minCol = Math.min(start.columnIndex, end.columnIndex);
+            const maxCol = Math.max(start.columnIndex, end.columnIndex);
+
+            // 获取可见列
+            const rows = table.getRowModel().rows;
+            if (rows.length === 0) return;
+
+            const visibleCells = rows[0]?.getVisibleCells();
+            if (!visibleCells) return;
+
+            // 构建复制数据（tab 分隔的格式，兼容 Excel）
+            const copyData: string[] = [];
+            for (let r = minRow; r <= maxRow && r < rows.length; r++) {
+                const rowCells = rows[r].getVisibleCells();
+                const rowData: string[] = [];
+
+                for (let c = minCol; c <= maxCol && c < rowCells.length; c++) {
+                    const cell = rowCells[c];
+                    let cellValue = '';
+
+                    // 获取单元格的值
+                    if (cell.column.columnDef.meta?.customCell) {
+                        // 对于自定义单元格，尝试从原始数据获取
+                        const rowData = cell.row.original;
+                        const columnId = cell.column.id;
+                        cellValue = String((rowData as any)[columnId] ?? '');
+                    } else {
+                        // 从 cell.getValue() 获取值
+                        const value = cell.getValue();
+                        cellValue = String(value ?? '');
+                    }
+
+                    rowData.push(cellValue);
+                }
+
+                copyData.push(rowData.join('\t'));
+            }
+
+            const textToCopy = copyData.join('\n');
+
+            // 写入剪贴板
+            try {
+                e.preventDefault();
+                await navigator.clipboard.writeText(textToCopy);
+                console.log(`已复制 ${maxRow - minRow + 1} 行 × ${maxCol - minCol + 1} 列到剪贴板`);
+            } catch (err) {
+                console.error('复制到剪贴板失败:', err);
+                // 降级方案：使用传统方法
+                try {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = textToCopy;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    console.log(`已复制（降级方案）${maxRow - minRow + 1} 行 × ${maxCol - minCol + 1} 列到剪贴板`);
+                } catch (fallbackErr) {
+                    console.error('降级复制方案也失败:', fallbackErr);
+                }
+            }
+        };
+
+        document.addEventListener('copy', handleCopy);
+        return () => {
+            document.removeEventListener('copy', handleCopy);
+        };
+    }, [selectionRange, table, editingCell]);
 
     // 切换列显示/隐藏
     const toggleColumn = (columnId: string) => {

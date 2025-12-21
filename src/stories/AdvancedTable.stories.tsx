@@ -1917,3 +1917,137 @@ export const ExportControl: StoryObj<typeof AdvancedTable> = {
     );
   },
 };
+
+/**
+ * 单元格选择和复制功能
+ *
+ * 功能说明：
+ * - 拖拽选择多个单元格（鼠标按下并拖动）
+ * - 选中区域会高亮显示
+ * - 使用 Ctrl+C / Cmd+C 复制选中的单元格
+ * - 复制的数据格式兼容 Excel（tab 分隔）
+ * - 可以直接粘贴到 Excel、Google Sheets 等
+ * - 不会干扰输入框内的文本选择和复制
+ */
+export const CellSelection: StoryObj<typeof AdvancedTable> = {
+  render: () => {
+    const [data, setData] = useState<Person[]>([
+      { id: 1, name: '张三', age: 28, email: 'zhangsan@example.com', status: '在职', department: '技术部', salary: 15000 },
+      { id: 2, name: '李四', age: 32, email: 'lisi@example.com', status: '在职', department: '产品部', salary: 18000 },
+      { id: 3, name: '王五', age: 25, email: 'wangwu@example.com', status: '在职', department: '设计部', salary: 12000 },
+      { id: 4, name: '赵六', age: 35, email: 'zhaoliu@example.com', status: '离职', department: '技术部', salary: 20000 },
+      { id: 5, name: '钱七', age: 29, email: 'qianqi@example.com', status: '在职', department: '运营部', salary: 14000 },
+      { id: 6, name: '孙八', age: 27, email: 'sunba@example.com', status: '在职', department: '市场部', salary: 13000 },
+      { id: 7, name: '周九', age: 31, email: 'zhoujiu@example.com', status: '在职', department: '人事部', salary: 16000 },
+      { id: 8, name: '吴十', age: 26, email: 'wushi@example.com', status: '在职', department: '财务部', salary: 17000 },
+    ]);
+
+    const [selectionInfo, setSelectionInfo] = useState<string>('未选择');
+
+    const columns: ColumnDef<Person>[] = [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: '姓名',
+        meta: { editable: false },
+      },
+      {
+        id: 'age',
+        accessorKey: 'age',
+        header: '年龄',
+        meta: { editable: false },
+      },
+      {
+        id: 'email',
+        accessorKey: 'email',
+        header: '邮箱',
+        meta: { editable: false },
+      },
+      {
+        id: 'department',
+        accessorKey: 'department',
+        header: '部门',
+        meta: { editable: false },
+      },
+      {
+        id: 'salary',
+        accessorKey: 'salary',
+        header: '薪资',
+        meta: { editable: false },
+      },
+      {
+        id: 'status',
+        accessorKey: 'status',
+        header: '状态',
+        meta: { editable: false },
+      },
+    ];
+
+    const handleSelectionChange = (selection: any) => {
+      if (selection) {
+        const rowCount = Math.abs(selection.end.rowIndex - selection.start.rowIndex) + 1;
+        const colCount = Math.abs(selection.end.columnIndex - selection.start.columnIndex) + 1;
+        setSelectionInfo(`已选择 ${rowCount} 行 × ${colCount} 列`);
+      } else {
+        setSelectionInfo('未选择');
+      }
+    };
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <h3>单元格选择和复制</h3>
+        <div style={{
+          background: '#f0f0f0',
+          padding: '15px',
+          borderRadius: '4px',
+          marginBottom: '20px',
+          fontSize: '14px',
+        }}>
+          <p style={{ margin: '0 0 10px 0' }}>
+            <strong>使用说明：</strong>
+          </p>
+          <ol style={{ margin: 0, paddingLeft: '20px' }}>
+            <li>用鼠标按下并拖动可以选择多个单元格</li>
+            <li>选中的单元格会有蓝色高亮背景</li>
+            <li>按 <kbd>Ctrl+C</kbd> (Windows) 或 <kbd>⌘+C</kbd> (Mac) 复制选中内容</li>
+            <li>打开 Excel 或 Google Sheets，按 <kbd>Ctrl+V</kbd> 粘贴</li>
+            <li>数据会自动按表格格式粘贴到目标应用中</li>
+          </ol>
+          <p style={{ margin: '10px 0 0 0', color: '#666' }}>
+            <strong>当前选择状态：</strong> {selectionInfo}
+          </p>
+        </div>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden' }}>
+          <AdvancedTable
+            data={data}
+            columns={columns}
+            enableEditing={false}
+            enableSelection={true}
+            onSelectionChange={handleSelectionChange}
+            enablePagination={false}
+            enableFiltering={false}
+            enableExport={false}
+          />
+        </div>
+
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          background: '#e6f7ff',
+          border: '1px solid #91d5ff',
+          borderRadius: '4px',
+          fontSize: '13px',
+        }}>
+          <strong>💡 提示：</strong>
+          <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
+            <li>复制的数据格式使用 Tab 分隔符，与 Excel 完全兼容</li>
+            <li>在编辑单元格时，复制功能会自动禁用，不会干扰输入框内的文本复制</li>
+            <li>选择区域可以跨越多行多列，灵活复制所需数据</li>
+            <li>浏览器控制台会显示复制成功的提示信息</li>
+          </ul>
+        </div>
+      </div>
+    );
+  },
+};
