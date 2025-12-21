@@ -161,6 +161,11 @@ npm run build:registry
 - **Cell Editing**: Two modes (click/doubleClick) with auto-save option; column-level editable control via `meta.editable`
 - **Data Change Tracking**: `onDataChange` callback includes `changeInfo` with type ('edit' | 'paste') and specific changes
 - **Selection**: Multi-cell selection with drag, stored as `{ startRow, endRow, startCol, endCol }`
+- **Export Control** ⭐:
+  - Column-level export control via `meta.exportable` (default: true)
+  - Set `meta.exportable: false` to exclude columns from Excel export (e.g., actions, selection columns)
+  - Export logic in `handleExport` filters out non-exportable columns
+  - Useful for excluding UI-only columns (buttons, checkboxes, etc.)
 - **Column Fixed Configuration** ⭐:
   - State managed in `columnFixed` (Record<string, 'left' | 'right' | null>)
   - UI: Pin icon button in `SortableColumnItem` component in column settings modal

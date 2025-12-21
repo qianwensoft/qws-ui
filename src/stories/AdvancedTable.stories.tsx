@@ -1726,3 +1726,194 @@ export const RowLevelEditControlMixed: StoryObj<typeof AdvancedTable> = {
 };
 
 
+/**
+ * ## 导出控制 - 排除特定列
+ *
+ * 通过设置列的 `meta.exportable: false` 可以控制该列在导出 Excel 时不被包含。
+ * 这对于操作列、序号列等不需要导出的列非常有用。
+ */
+export const ExportControl: StoryObj<typeof AdvancedTable> = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+### 导出控制功能
+
+通过 \`meta.exportable\` 属性控制列是否可导出到 Excel。
+
+**配置方式：**
+\`\`\`typescript
+{
+  id: 'actions',
+  header: '操作',
+  meta: {
+    exportable: false,  // 设置为 false，导出时跳过该列
+    customCell: true,
+  },
+  cell: ({ row }) => (
+    <div>
+      <button>编辑</button>
+      <button>删除</button>
+    </div>
+  ),
+}
+\`\`\`
+
+**应用场景：**
+- 操作列（编辑、删除按钮等）
+- 序号列
+- 选择框列
+- 内部使用的辅助列
+- 任何不需要导出的列
+
+**默认行为：**
+- 未设置 \`exportable\` 的列默认为 \`true\`，会被导出
+- 设置 \`exportable: false\` 的列在导出时会被跳过
+- 列的显示/隐藏状态不受影响
+        `,
+      },
+    },
+  },
+  render: () => {
+    const [data, setData] = useState<Person[]>(() => generateData(10));
+
+    const handleDataChange = (newData: Person[], changeInfo?: DataChangeInfo<Person>) => {
+      console.log('数据变更：', changeInfo);
+      setData(newData);
+    };
+
+    // 带操作列的列定义
+    const columnsWithActions: ColumnDef<Person>[] = [
+      {
+        id: 'selection',
+        header: '选择',
+        size: 60,
+        meta: {
+          exportable: false,  // 选择列不导出
+          editable: false,
+          customCell: true,
+        },
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            style={{ cursor: 'pointer' }}
+            onChange={(e) => console.log(`Row ${row.index} selected:`, e.target.checked)}
+          />
+        ),
+      },
+      {
+        id: 'index',
+        header: '序号',
+        size: 60,
+        meta: {
+          exportable: false,  // 序号列不导出
+          editable: false,
+          customCell: true,
+        },
+        cell: ({ row }) => row.index + 1,
+      },
+      ...baseColumns,
+      {
+        id: 'actions',
+        header: '操作',
+        size: 150,
+        meta: {
+          exportable: false,  // 操作列不导出
+          editable: false,
+          customCell: true,
+        },
+        cell: ({ row }) => (
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <button
+              onClick={() => alert(`编辑: ${row.original.name}`)}
+              style={{
+                padding: '4px 12px',
+                background: '#1890ff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              编辑
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`确定删除 ${row.original.name} 吗？`)) {
+                  const newData = data.filter((_, i) => i !== row.index);
+                  setData(newData);
+                }
+              }}
+              style={{
+                padding: '4px 12px',
+                background: '#ff4d4f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              删除
+            </button>
+          </div>
+        ),
+      },
+    ];
+
+    return (
+      <div style={{ padding: '20px', height: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '1400px', margin: '0 auto' }}>
+        <h2>导出控制示例</h2>
+
+        <div style={{
+          background: '#f0f7ff',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #91caff'
+        }}>
+          <h4 style={{ marginTop: 0 }}>列配置说明：</h4>
+          <ul style={{ marginBottom: 0 }}>
+            <li><strong>选择列：</strong>meta.exportable = false（不导出）</li>
+            <li><strong>序号列：</strong>meta.exportable = false（不导出）</li>
+            <li><strong>数据列：</strong>未设置 exportable，默认导出</li>
+            <li><strong>操作列：</strong>meta.exportable = false（不导出）</li>
+          </ul>
+        </div>
+
+        <div style={{
+          background: '#fff7e6',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #ffd591'
+        }}>
+          <h4 style={{ marginTop: 0 }}>使用提示：</h4>
+          <p style={{ margin: 0 }}>
+            👉 点击右上角<strong>导出</strong>按钮，导出 Excel 文件<br/>
+            👉 打开导出的文件，观察<strong>选择列、序号列、操作列</strong>已被排除<br/>
+            👉 只有<strong>实际数据列</strong>（姓名、年龄、邮箱等）会被导出<br/>
+            👉 这样可以确保导出的数据更<strong>纯净、更适合分享</strong>
+          </p>
+        </div>
+
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <AdvancedTable
+            data={data}
+            columns={columnsWithActions}
+            onDataChange={handleDataChange}
+            enableEditing={true}
+            editTriggerMode="doubleClick"
+            autoSave={true}
+            enablePaste={true}
+            enableFiltering={true}
+            enableExport={true}
+            exportFilename="员工数据_不含操作列"
+            enableColumnReorder={false}
+          />
+        </div>
+      </div>
+    );
+  },
+};
