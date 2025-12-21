@@ -1,0 +1,32 @@
+{
+  "name": "print-designer",
+  "type": "registry:component",
+  "title": "Print Designer",
+  "description": "Visual print template designer based on fabric.js.",
+  "registryDependencies": [
+    "button",
+    "input",
+    "select",
+    "card",
+    "advanced-table"
+  ],
+  "dependencies": [
+    "fabric@^6.9.0",
+    "lucide-react"
+  ],
+  "devDependencies": [
+    "@types/fabric@^5.3.10"
+  ],
+  "files": [
+    {
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/prd/registry/default/print-designer/print-designer.tsx",
+      "type": "registry:component",
+      "target": "components/print-designer.tsx"
+    },
+    {
+      "path": "https://gitee.com/qianwensoft/qws-ui/raw/prd/registry/default/print-designer/print-designer.css",
+      "type": "registry:style",
+      "target": "components/print-designer.css"
+    }
+  ]
+}
